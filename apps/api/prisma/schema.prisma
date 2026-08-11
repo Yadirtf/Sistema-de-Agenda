@@ -1,0 +1,344 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 1. CATÁLOGOS
+// ============================================================
+
+model DocumentType {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  people People[]
+
+  @@map("document_types")
+}
+
+model Role {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model PersonStatus {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  people People[]
+
+  @@map("person_statuses")
+}
+
+model EntryStatus {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  clientEntries ClientEntry[]
+
+  @@map("entry_statuses")
+}
+
+model PeriodStatus {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  schedulingPeriods SchedulingPeriod[]
+
+  @@map("period_statuses")
+}
+
+model AppointmentStatus {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  appointments Appointment[]
+
+  @@map("appointment_statuses")
+}
+
+model ReschedulingReason {
+  id          BigInt  @id @default(autoincrement())
+  name        String  @unique @db.VarChar(150)
+  description String? @db.Text
+
+  reschedulings Rescheduling[]
+
+  @@map("rescheduling_reasons")
+}
+
+model FollowUpType {
+  id   BigInt @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+
+  followUps FollowUp[]
+
+  @@map("follow_up_types")
+}
+
+model SchedulingInterval {
+  id          BigInt  @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  days        Int
+  description String? @db.Text
+
+  schedulingConfigs      SchedulingConfig[]
+  clientSchedulingConfigs ClientSchedulingConfig[]
+
+  @@map("scheduling_intervals")
+}
+
+// ============================================================
+// 2. PERSONAS
+// ============================================================
+
+model People {
+  id             BigInt    @id @default(autoincrement())
+  documentTypeId BigInt    @map("document_type_id")
+  documentNumber String    @map("document_number") @db.VarChar(50)
+  firstName      String    @map("first_name") @db.VarChar(100)
+  middleName     String?   @map("middle_name") @db.VarChar(100)
+  lastName       String    @map("last_name") @db.VarChar(100)
+  secondLastName String?   @map("second_last_name") @db.VarChar(100)
+  birthDate      DateTime? @map("birth_date") @db.Date
+  phone          String?   @db.VarChar(30)
+  email          String?   @db.VarChar(150)
+  statusId       BigInt    @map("status_id")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  documentType              DocumentType  @relation(fields: [documentTypeId], references: [id])
+  status                    PersonStatus  @relation(fields: [statusId], references: [id])
+  user                      User?
+  client                    Client?
+  professionalAppointments  Appointment[] @relation("ProfessionalAppointments")
+
+  @@unique([documentTypeId, documentNumber])
+  @@index([lastName, firstName])
+  @@index([phone])
+  @@index([email])
+  @@map("people")
+}
+
+// ============================================================
+// 3. USUARIOS
+// ============================================================
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  personId     BigInt   @unique @map("person_id")
+  email        String   @unique @db.VarChar(150)
+  passwordHash String   @map("password_hash") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  person        People         @relation(fields: [personId], references: [id], onDelete: Restrict)
+  userRoles     UserRole[]
+  reschedulings Rescheduling[]
+  followUps     FollowUp[]
+
+  @@map("users")
+}
+
+// ============================================================
+// 4. ROLES DE USUARIO
+// ============================================================
+
+model UserRole {
+  userId BigInt @map("user_id")
+  roleId BigInt @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ============================================================
+// 5. CLIENTES
+// ============================================================
+
+model Client {
+  id        BigInt   @id @default(autoincrement())
+  personId  BigInt   @unique @map("person_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  person           People                  @relation(fields: [personId], references: [id], onDelete: Restrict)
+  entries          ClientEntry[]
+  appointments     Appointment[]
+  followUps        FollowUp[]
+  schedulingConfig ClientSchedulingConfig?
+
+  @@map("clients")
+}
+
+// ============================================================
+// 6. INGRESOS DE CLIENTES
+// ============================================================
+
+model ClientEntry {
+  id        BigInt   @id @default(autoincrement())
+  clientId  BigInt   @map("client_id")
+  entryDate DateTime @map("entry_date") @db.Date
+  statusId  BigInt   @map("status_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  status       EntryStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  appointments Appointment[]
+
+  @@index([clientId])
+  @@index([entryDate])
+  @@index([statusId])
+  @@map("client_entries")
+}
+
+// ============================================================
+// 7. CONFIGURACIÓN GLOBAL DE AGENDAMIENTO
+// ============================================================
+
+model SchedulingConfig {
+  id                  BigInt   @id @default(autoincrement())
+  defaultIntervalId   BigInt   @map("default_interval_id")
+  allowClientOverride Boolean  @default(true) @map("allow_client_override")
+  autoSuggestNext     Boolean  @default(true) @map("auto_suggest_next")
+  respectEntryWeek    Boolean  @default(true) @map("respect_entry_week")
+  workingDays         Int[]    @default([1, 2, 3, 4, 5]) @map("working_days")
+  businessStartTime   DateTime @default(dbgenerated("'08:00'::time")) @map("business_start_time") @db.Time()
+  businessEndTime     DateTime @default(dbgenerated("'18:00'::time")) @map("business_end_time") @db.Time()
+  slotDurationMinutes Int      @default(30) @map("slot_duration_minutes")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  defaultInterval SchedulingInterval @relation(fields: [defaultIntervalId], references: [id])
+
+  @@map("scheduling_config")
+}
+
+// ============================================================
+// 8. CONFIGURACIÓN POR CLIENTE
+// ============================================================
+
+model ClientSchedulingConfig {
+  id         BigInt   @id @default(autoincrement())
+  clientId   BigInt   @unique @map("client_id")
+  intervalId BigInt   @map("interval_id")
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  client   Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  interval SchedulingInterval @relation(fields: [intervalId], references: [id])
+
+  @@map("client_scheduling_config")
+}
+
+// ============================================================
+// 9. PERIODOS DE AGENDAMIENTO
+// ============================================================
+
+model SchedulingPeriod {
+  id        BigInt   @id @default(autoincrement())
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  statusId  BigInt   @map("status_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  status       PeriodStatus  @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  appointments Appointment[]
+
+  @@unique([startDate, endDate])
+  @@index([startDate, endDate])
+  @@map("scheduling_periods")
+}
+
+// ============================================================
+// 10. CITAS
+// ============================================================
+
+model Appointment {
+  id                    BigInt   @id @default(autoincrement())
+  clientId              BigInt   @map("client_id")
+  professionalId        BigInt?  @map("professional_id")
+  clientEntryId         BigInt?  @map("client_entry_id")
+  schedulingPeriodId    BigInt?  @map("scheduling_period_id")
+  previousAppointmentId BigInt?  @unique @map("previous_appointment_id")
+  appointmentDate       DateTime @map("appointment_date") @db.Timestamptz()
+  statusId              BigInt   @map("status_id")
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  client              Client            @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  professional        People?           @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: SetNull)
+  clientEntry         ClientEntry?      @relation(fields: [clientEntryId], references: [id], onDelete: SetNull)
+  schedulingPeriod    SchedulingPeriod?  @relation(fields: [schedulingPeriodId], references: [id], onDelete: SetNull)
+  previousAppointment Appointment?      @relation("AppointmentChain", fields: [previousAppointmentId], references: [id], onDelete: SetNull)
+  nextAppointment     Appointment?      @relation("AppointmentChain")
+  status              AppointmentStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+
+  reschedulingsOriginal Rescheduling[] @relation("OriginalAppointment")
+  reschedulingsNew      Rescheduling?  @relation("NewAppointment")
+  followUps             FollowUp[]
+
+  @@index([clientId])
+  @@index([appointmentDate])
+  @@index([statusId])
+  @@index([professionalId, appointmentDate])
+  @@map("appointments")
+}
+
+// ============================================================
+// 11. REAGENDAMIENTOS
+// ============================================================
+
+model Rescheduling {
+  id                    BigInt   @id @default(autoincrement())
+  originalAppointmentId BigInt   @map("original_appointment_id")
+  newAppointmentId      BigInt   @unique @map("new_appointment_id")
+  reasonId              BigInt   @map("reason_id")
+  performedBy           BigInt?  @map("performed_by")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  originalAppointment Appointment        @relation("OriginalAppointment", fields: [originalAppointmentId], references: [id], onDelete: Restrict)
+  newAppointment      Appointment        @relation("NewAppointment", fields: [newAppointmentId], references: [id], onDelete: Restrict)
+  reason              ReschedulingReason @relation(fields: [reasonId], references: [id], onDelete: Restrict)
+  performedByUser     User?              @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+
+  @@index([originalAppointmentId])
+  @@map("reschedulings")
+}
+
+// ============================================================
+// 12. SEGUIMIENTOS
+// ============================================================
+
+model FollowUp {
+  id            BigInt   @id @default(autoincrement())
+  clientId      BigInt   @map("client_id")
+  appointmentId BigInt?  @map("appointment_id")
+  performedBy   BigInt?  @map("performed_by")
+  typeId        BigInt   @map("type_id")
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  performedByUser User?        @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+  type            FollowUpType @relation(fields: [typeId], references: [id], onDelete: Restrict)
+
+  @@index([clientId])
+  @@index([appointmentId])
+  @@index([createdAt])
+  @@map("follow_ups")
+}
