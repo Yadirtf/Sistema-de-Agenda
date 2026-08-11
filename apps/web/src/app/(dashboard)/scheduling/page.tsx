@@ -63,6 +63,8 @@ export default function SchedulingPage() {
       const businessStartTime = formData.get('businessStartTime') as string;
       const businessEndTime = formData.get('businessEndTime') as string;
       const slotDurationMinutes = Number(formData.get('slotDurationMinutes'));
+      const reminderDaysBefore = Number(formData.get('reminderDaysBefore'));
+      const businessPhone = formData.get('businessPhone') as string;
 
       const workingDays = [1, 2, 3, 4, 5, 6, 0].filter((day) => formData.get(`day_${day}`) === 'on');
 
@@ -75,6 +77,8 @@ export default function SchedulingPage() {
         businessStartTime,
         businessEndTime,
         slotDurationMinutes,
+        reminderDaysBefore,
+        businessPhone: businessPhone || null,
       });
 
       queryClient.invalidateQueries({ queryKey: ['scheduling-config'] });
@@ -314,6 +318,41 @@ export default function SchedulingPage() {
                   </p>
                 </div>
               </label>
+            </div>
+
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', marginTop: '1rem' }}>
+              Recordatorios & WhatsApp
+            </h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">Días de Anticipación para Recordatorio</label>
+                <input
+                  type="number"
+                  className="input"
+                  name="reminderDaysBefore"
+                  defaultValue={config.reminderDaysBefore}
+                  min={1}
+                  max={30}
+                />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Cuántos días antes de la cita se habilitará la notificación.
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Teléfono WhatsApp Negocio</label>
+                <input
+                  type="text"
+                  className="input"
+                  name="businessPhone"
+                  defaultValue={config.businessPhone || ''}
+                  placeholder="Ej: 573001234567"
+                />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Número para solicitudes de reagendamiento (incluir código de país).
+                </p>
+              </div>
             </div>
 
             <h2 style={{ fontSize: '1.125rem', fontWeight: 700, borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', marginTop: '1rem' }}>

@@ -218,6 +218,8 @@ model SchedulingConfig {
   businessStartTime   DateTime @default(dbgenerated("'08:00'::time")) @map("business_start_time") @db.Time()
   businessEndTime     DateTime @default(dbgenerated("'18:00'::time")) @map("business_end_time") @db.Time()
   slotDurationMinutes Int      @default(30) @map("slot_duration_minutes")
+  reminderDaysBefore  Int      @default(1) @map("reminder_days_before")
+  businessPhone       String?  @map("business_phone") @db.VarChar(30)
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -276,6 +278,9 @@ model Appointment {
   appointmentDate       DateTime @map("appointment_date") @db.Timestamptz()
   statusId              BigInt   @map("status_id")
   notes                 String?  @db.Text
+  confirmationToken     String?  @unique @map("confirmation_token") @db.VarChar(100)
+  tokenUsed             Boolean  @default(false) @map("token_used")
+  reminderSentAt        DateTime? @map("reminder_sent_at") @db.Timestamptz()
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 

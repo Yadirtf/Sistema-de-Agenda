@@ -18,6 +18,7 @@ import {
   ChevronDown,
   List,
   History,
+  Bell,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import {
@@ -30,17 +31,22 @@ import { StatusChangeModal } from '@/components/appointments/StatusChangeModal';
 import { AppointmentDetailsModal } from '@/components/appointments/AppointmentDetailsModal';
 import { YearlyHistoryGrid } from '@/components/appointments/YearlyHistoryGrid';
 import { RescheduleFlowModal } from '@/components/appointments/RescheduleFlowModal';
+import { AppointmentRemindersTab } from '@/components/appointments/AppointmentRemindersTab';
 
 export default function AppointmentsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'daily' | 'yearly'>('daily');
+  const [activeTab, setActiveTab] = useState<'daily' | 'yearly' | 'reminders'>('daily');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-  // Today filter dates
-  const today = new Date();
-  const startOfToday = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-  const endOfToday = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+  // Daily filter range based on selectedDate (forcing Bogota offset)
+  const getDailyRange = (dateStr: string) => {
+    // dateStr viene como YYYY-MM-DD
+    const start = `${dateStr}T00:00:00.000-05:00`;
+    const end = `${dateStr}T23:59:59.999-05:00`;
+    return { start, end };
+  };
 
   // Modals state
   const [completionData, setCompletionData] = useState<CompleteAppointmentResponse | null>(null);
@@ -57,15 +63,16 @@ export default function AppointmentsPage() {
 
   // Fetch appointments
   const { data, isLoading } = useQuery({
-    queryKey: ['appointments', statusFilter, page, activeTab],
+    queryKey: ['appointments', statusFilter, page, activeTab, selectedDate],
     queryFn: async () => {
       const params = new URLSearchParams({ page: page.toString(), perPage: '10' });
       if (statusFilter) params.append('statusId', statusFilter);
 
-      // If daily tab, filter only for today
-      if (activeTab === 'daily') {
-        params.append('dateFrom', startOfToday);
-        params.append('dateTo', endOfToday);
+      // If daily tab, filter for the selected date
+      if (activeTab === 'daily' && selectedDate) {
+        const { start, end } = getDailyRange(selectedDate);
+        params.append('dateFrom', start);
+        params.append('dateTo', end);
       }
 
       return apiClient.get<PaginatedResponse<Appointment>>(`/appointments?${params.toString()}`);
@@ -151,6 +158,8 @@ export default function AppointmentsPage() {
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
             {activeTab === 'daily'
               ? 'Seguimiento de agendamientos programados para el día de hoy'
+              : activeTab === 'reminders'
+              ? 'Gestión de notificaciones y recordatorios para citas próximas'
               : 'Historial completo de citas proyectado por meses y años'}
           </p>
         </div>
@@ -173,31 +182,54 @@ export default function AppointmentsPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('reminders')}
+          className={`btn ${activeTab === 'reminders' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ padding: '0.5rem 1rem' }}
+        >
+          <Bell size={18} />
+          <span>Notificación</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('yearly')}
           className={`btn ${activeTab === 'yearly' ? 'btn-primary' : 'btn-ghost'}`}
           style={{ padding: '0.5rem 1rem' }}
         >
           <History size={18} />
-          <span>Historial Anual de Citas</span>
+          <span>Historial Anual</span>
         </button>
       </div>
 
       {activeTab === 'yearly' ? (
         <YearlyHistoryGrid />
+      ) : activeTab === 'reminders' ? (
+        <AppointmentRemindersTab />
       ) : (
         <>
           {/* Filter Bar */}
           <div className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              <CalendarIcon size={16} />
-              <span style={{ fontWeight: 600 }}>Hoy: {new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                <CalendarIcon size={16} />
+                <span style={{ fontWeight: 600 }}>Fecha:</span>
+              </div>
+              <input
+                type="date"
+                className="input"
+                style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem', width: 'auto' }}
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
 
-            <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-subtle)', margin: '0 0.5rem' }} />
+            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-subtle)', margin: '0 0.5rem' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <Filter size={16} />
-              <span>Filtrar por Estado:</span>
+              <span>Estado:</span>
             </div>
 
             <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
@@ -210,7 +242,7 @@ export default function AppointmentsPage() {
                 Todas
               </button>
               {(() => {
-                const statusOrder = ['Agendada', 'Confirmada', 'En Curso', 'Completada', 'Cancelada', 'No Asistió'];
+                const statusOrder = ['Sin agendar', 'Agendada', 'Confirmada', 'En Curso', 'Completada', 'Cancelada', 'No Asistió'];
                 const sortedStatuses = statuses
                   ? [...statuses].sort((a, b) => {
                       const indexA = statusOrder.indexOf(a.name);

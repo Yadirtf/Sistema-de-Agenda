@@ -65,6 +65,7 @@ async function main() {
 
   // 6. Estados de cita
   const appointmentStatuses = [
+    'Sin agendar',
     'Agendada',
     'Confirmada',
     'En Curso',

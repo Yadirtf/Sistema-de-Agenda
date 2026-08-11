@@ -29,11 +29,9 @@ export function YearlyHistoryGrid() {
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
-      case 'Completada': return 'var(--success-500)';
-      case 'Cancelada': return 'var(--danger-500)';
-      case 'No Asistió': return 'var(--warning-500)';
-      case 'Confirmada': return 'var(--info-500)';
-      case 'Agendada': return 'var(--primary-400)';
+      case 'Completada': return 'var(--success-text)';
+      case 'Cancelada': return 'var(--danger-text)';
+      case 'No Asistió': return 'var(--warning-text)';
       default: return 'transparent';
     }
   };
@@ -157,17 +155,18 @@ export function YearlyHistoryGrid() {
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', padding: '1rem', backgroundColor: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
         {[
-          { label: 'Completada', color: 'var(--success-500)' },
-          { label: 'Cancelada', color: 'var(--danger-500)' },
-          { label: 'No Asistió', color: 'var(--warning-500)' },
-          { label: 'Confirmada', color: 'var(--info-500)' },
-          { label: 'Agendada', color: 'var(--primary-400)' },
+          { label: 'Completada', color: 'var(--success-text)', description: 'Cita finalizada con éxito' },
+          { label: 'Cancelada', color: 'var(--danger-text)', description: 'Cita anulada por el cliente o admin' },
+          { label: 'No Asistió', color: 'var(--warning-text)', description: 'El cliente no se presentó' },
         ].map(l => (
-          <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: l.color }} />
-            <span>{l.label}</span>
+          <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: l.color, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>{l.label}</span>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{l.description}</span>
+            </div>
           </div>
         ))}
       </div>

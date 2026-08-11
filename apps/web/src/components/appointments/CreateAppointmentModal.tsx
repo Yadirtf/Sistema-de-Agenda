@@ -86,7 +86,8 @@ export function CreateAppointmentModal({
 
     try {
       setLoading(true);
-      const combinedDateTime = `${appointmentDate}T${appointmentTime}:00`;
+      // Forzar offset de Bogotá para evitar desfases al guardar en BD
+      const combinedDateTime = `${appointmentDate}T${appointmentTime}:00-05:00`;
 
       await apiClient.post('/appointments', {
         clientId: cid,

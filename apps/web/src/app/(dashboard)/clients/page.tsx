@@ -13,13 +13,16 @@ import {
   Clock,
   ChevronRight,
   Filter,
+  AlertCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { Client, PaginatedResponse } from '@agendamiento/shared';
+import { Client, Appointment, PaginatedResponse } from '@agendamiento/shared';
+import { AppointmentDetailsModal } from '@/components/appointments/AppointmentDetailsModal';
 
 export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedApptForDetails, setSelectedApptForDetails] = useState<Appointment | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['clients', search, page],
@@ -118,8 +121,8 @@ export default function ClientsPage() {
                   <th style={{ padding: '1rem' }}>Cliente / Persona</th>
                   <th style={{ padding: '1rem' }}>Documento</th>
                   <th style={{ padding: '1rem' }}>Contacto</th>
-                  <th style={{ padding: '1rem' }}>Intervalo de Agendamiento</th>
-                  <th style={{ padding: '1rem' }}>Estado</th>
+                  <th style={{ padding: '1rem' }}>Cita / Estado</th>
+                  <th style={{ padding: '1rem' }}>Frecuencia</th>
                   <th style={{ padding: '1rem', textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
@@ -127,6 +130,7 @@ export default function ClientsPage() {
                 {clients.map((client) => {
                   const person = client.person;
                   const interval = client.schedulingConfig?.interval;
+                  const latestAppt = client.latestAppointment;
 
                   return (
                     <tr
@@ -134,6 +138,13 @@ export default function ClientsPage() {
                       style={{
                         borderBottom: '1px solid var(--border-subtle)',
                         transition: 'background 0.15s ease',
+                        cursor: latestAppt ? 'pointer' : 'default',
+                      }}
+                      className={latestAppt ? 'hover-bg-subtle' : ''}
+                      onClick={() => {
+                        if (latestAppt) {
+                          setSelectedApptForDetails(latestAppt);
+                        }
                       }}
                     >
                       <td style={{ padding: '1rem' }}>
@@ -159,7 +170,7 @@ export default function ClientsPage() {
                               {person?.firstName} {person?.lastName}
                             </p>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Registrado: {new Date(client.createdAt).toLocaleDateString('es-CO')}
+                              ID: {client.id}
                             </p>
                           </div>
                         </div>
@@ -204,39 +215,57 @@ export default function ClientsPage() {
                       </td>
 
                       <td style={{ padding: '1rem' }}>
+                        {latestAppt ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span
+                              className={`badge ${
+                                latestAppt.status?.name === 'Completada'
+                                  ? 'badge-success'
+                                  : ['Cancelada', 'No Asistió'].includes(latestAppt.status?.name || '')
+                                  ? 'badge-danger'
+                                  : latestAppt.status?.name === 'Agendada'
+                                  ? 'badge-info'
+                                  : 'badge-warning'
+                              }`}
+                              style={{ width: 'fit-content' }}
+                            >
+                              {latestAppt.status?.name}
+                            </span>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {new Date(latestAppt.appointmentDate).toLocaleDateString('es-CO')}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="badge badge-ghost" style={{ color: 'var(--text-light)', border: '1px dashed var(--border-medium)' }}>
+                            Sin agendar
+                          </span>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '1rem' }}>
                         {interval ? (
                           <span className="badge badge-info">
                             <Clock size={12} />
                             <span>
-                              {interval.name} ({interval.days} días)
+                              {interval.name}
                             </span>
                           </span>
                         ) : (
                           <span
                             style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}
                           >
-                            Global por defecto
+                            Global
                           </span>
                         )}
                       </td>
 
-                      <td style={{ padding: '1rem' }}>
-                        <span
-                          className={`badge ${
-                            person?.status?.name === 'Activo' ? 'badge-success' : 'badge-danger'
-                          }`}
-                        >
-                          {person?.status?.name || 'Activo'}
-                        </span>
-                      </td>
-
-                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                      <td style={{ padding: '1rem', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <Link
                           href={`/clients/${client.id}`}
                           className="btn btn-ghost"
                           style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
                         >
-                          <span>Ver Perfil</span>
+                          <span>Perfil</span>
                           <ChevronRight size={16} />
                         </Link>
                       </td>
@@ -285,6 +314,12 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
+
+      <AppointmentDetailsModal
+        isOpen={!!selectedApptForDetails}
+        onClose={() => setSelectedApptForDetails(null)}
+        appointment={selectedApptForDetails}
+      />
     </div>
   );
 }

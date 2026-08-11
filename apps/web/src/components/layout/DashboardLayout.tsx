@@ -7,13 +7,21 @@ import { Header } from './Header';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -40,13 +48,43 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setIsMobileOpen(!isMobileOpen);
+    } else {
+      setIsCollapsed(!isCollapsed);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-app)' }}>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={isMobileOpen}
+        isCollapsed={isCollapsed}
+        isMobile={isMobile}
+        onClose={() => setIsMobileOpen(false)}
+      />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <main style={{ flex: 1, padding: '1.5rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          marginLeft: !isMobile ? (isCollapsed ? '80px' : '260px') : '0',
+          transition: 'margin-left 0.3s ease',
+        }}
+      >
+        <Header onToggleSidebar={toggleSidebar} />
+        <main
+          style={{
+            flex: 1,
+            padding: '1.5rem',
+            maxWidth: '1400px',
+            margin: '0 auto',
+            width: '100%',
+          }}
+        >
           {children}
         </main>
       </div>

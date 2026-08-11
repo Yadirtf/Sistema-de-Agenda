@@ -17,10 +17,12 @@ import { useAuthStore } from '@/stores/useAuthStore';
 
 interface SidebarProps {
   isOpen: boolean;
+  isCollapsed: boolean;
+  isMobile: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, isCollapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.roles.some((r) => r.name === 'Administrador');
@@ -43,7 +45,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Mobile Backdrop */}
-      {isOpen && (
+      {isMobile && isOpen && (
         <div
           onClick={onClose}
           style={{
@@ -63,31 +65,34 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           top: 0,
           left: 0,
           bottom: 0,
-          width: '260px',
+          width: isCollapsed ? '80px' : '260px',
           backgroundColor: 'var(--bg-surface)',
           borderRight: '1px solid var(--border-subtle)',
           zIndex: 50,
           display: 'flex',
           flexDirection: 'column',
-          transition: 'transform 0.3s ease',
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease, width 0.3s ease',
+          transform: isMobile ? (isOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
         }}
       >
         {/* Brand */}
         <div
           style={{
             height: '64px',
-            padding: '0 1.5rem',
+            padding: isCollapsed ? '0' : '0 1.5rem',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
             gap: '0.75rem',
             borderBottom: '1px solid var(--border-subtle)',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
               width: '36px',
               height: '36px',
+              minWidth: '36px',
               borderRadius: '10px',
               background: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
               display: 'flex',
@@ -99,14 +104,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <Calendar size={20} />
           </div>
-          <div>
-            <h1 style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1.2 }}>Agendamiento</h1>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestión Inteligente</p>
-          </div>
+          {!isCollapsed && (
+            <div style={{ whiteSpace: 'nowrap' }}>
+              <h1 style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1.2 }}>Agendamiento</h1>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestión Inteligente</p>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <nav
+          style={{
+            flex: 1,
+            padding: '1rem 0.75rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem',
+            alignItems: isCollapsed ? 'center' : 'stretch',
+          }}
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -115,11 +131,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={onClose}
+                onClick={() => {
+                  if (isMobile) onClose();
+                }}
+                title={isCollapsed ? item.name : ''}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
+                  gap: isCollapsed ? '0' : '0.75rem',
                   padding: '0.625rem 0.875rem',
                   borderRadius: 'var(--radius-md)',
                   fontSize: '0.875rem',
@@ -127,10 +147,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   color: isActive ? 'var(--primary-600)' : 'var(--text-muted)',
                   backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',
                   transition: 'all 0.15s ease',
+                  width: isCollapsed ? '44px' : '100%',
+                  height: '44px',
                 }}
               >
-                <Icon size={18} style={{ color: isActive ? 'var(--primary-600)' : 'currentColor' }} />
-                <span>{item.name}</span>
+                <Icon size={18} style={{ color: isActive ? 'var(--primary-600)' : 'currentColor', minWidth: '18px' }} />
+                {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
               </Link>
             );
           })}
@@ -140,20 +162,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {user && (
           <div
             style={{
-              padding: '1rem',
+              padding: isCollapsed ? '0.5rem' : '1rem',
               margin: '0.75rem',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'var(--bg-app)',
               border: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              gap: isCollapsed ? '0' : '0.75rem',
+              overflow: 'hidden',
             }}
           >
             <div
               style={{
                 width: '36px',
                 height: '36px',
+                minWidth: '36px',
                 borderRadius: '50%',
                 backgroundColor: 'var(--primary-500)',
                 color: '#fff',
@@ -166,30 +191,32 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               {user.person?.firstName?.[0] || 'U'}
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <p
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {user.person?.firstName} {user.person?.lastName}
-              </p>
-              <p
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {user.roles?.[0]?.name || 'Usuario'}
-              </p>
-            </div>
+            {!isCollapsed && (
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <p
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {user.person?.firstName} {user.person?.lastName}
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {user.roles?.[0]?.name || 'Usuario'}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </aside>

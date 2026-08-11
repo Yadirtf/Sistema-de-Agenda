@@ -67,6 +67,7 @@ export interface Client {
   // Relaciones expandidas
   person?: Person;
   schedulingConfig?: ClientSchedulingConfig | null;
+  latestAppointment?: Appointment | null;
 }
 
 export interface ClientEntry {
@@ -103,6 +104,8 @@ export interface SchedulingConfig {
   businessStartTime: string;
   businessEndTime: string;
   slotDurationMinutes: number;
+  reminderDaysBefore: number;
+  businessPhone?: string | null;
   createdAt: string;
   updatedAt: string;
 
@@ -135,6 +138,9 @@ export interface Appointment {
   appointmentDate: string;
   statusId: number;
   notes?: string | null;
+  confirmationToken?: string | null;
+  tokenUsed: boolean;
+  reminderSentAt?: string | null;
   createdAt: string;
   updatedAt: string;
 

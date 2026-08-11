@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SchedulingService } from '../scheduling/scheduling.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -60,8 +61,18 @@ export class AppointmentsService {
     if (query?.statusId) where.statusId = Number(query.statusId);
     if (query?.dateFrom || query?.dateTo) {
       where.appointmentDate = {};
-      if (query?.dateFrom) where.appointmentDate.gte = new Date(query.dateFrom);
-      if (query?.dateTo) where.appointmentDate.lte = new Date(query.dateTo);
+      if (query?.dateFrom) {
+        const d = new Date(query.dateFrom);
+        if (!isNaN(d.getTime())) where.appointmentDate.gte = d;
+      }
+      if (query?.dateTo) {
+        const d = new Date(query.dateTo);
+        if (!isNaN(d.getTime())) where.appointmentDate.lte = d;
+      }
+      // Si el objeto quedó vacío por fechas inválidas, lo eliminamos
+      if (Object.keys(where.appointmentDate).length === 0) {
+        delete where.appointmentDate;
+      }
     }
 
     const [total, items] = await Promise.all([
@@ -94,8 +105,31 @@ export class AppointmentsService {
 
   async create(dto: CreateAppointmentDto): Promise<Appointment> {
     // Verificar existencia del cliente
-    const client = await this.prisma.client.findUnique({ where: { id: dto.clientId } });
+    const client = await this.prisma.client.findUnique({
+      where: { id: dto.clientId },
+      include: { person: true },
+    });
     if (!client) throw new BadRequestException(`Cliente con ID ${dto.clientId} no existe`);
+
+    // Regla de Negocio: Un cliente no puede tener dos citas "activas" simultáneamente.
+    // Se considera activa cualquier cita que NO esté en un estado final.
+    const activeAppointment = await this.prisma.appointment.findFirst({
+      where: {
+        clientId: dto.clientId,
+        status: {
+          name: {
+            notIn: ['Completada', 'Cancelada', 'No Asistió'],
+          },
+        },
+      },
+      include: { status: true },
+    });
+
+    if (activeAppointment) {
+      throw new BadRequestException(
+        `El cliente ${client.person.firstName} ${client.person.lastName} ya tiene una cita activa en estado "${activeAppointment.status.name}". Debe finalizarla o cancelarla antes de agendar una nueva.`,
+      );
+    }
 
     // Resolver el estado: si no se pasa statusId, usar 'Agendada' como estado inicial por defecto
     let resolvedStatusId = dto.statusId;
@@ -119,6 +153,7 @@ export class AppointmentsService {
         appointmentDate: new Date(dto.appointmentDate),
         statusId: resolvedStatusId,
         notes: dto.notes ?? null,
+        confirmationToken: randomUUID(),
       },
       include: APPOINTMENT_INCLUDE,
     });
@@ -164,15 +199,24 @@ export class AppointmentsService {
     clientId?: number;
     search?: string;
   }): Promise<YearlyHistoryResponse> {
-    const year = Number(query.year);
-    // Usar formato ISO para evitar ambigüedades de zona horaria en la query
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    const year = Number(query.year) || new Date().getFullYear();
+    // Usar offset de Bogotá para delimitar el año correctamente
+    const startDate = new Date(`${year}-01-01T00:00:00.000-05:00`);
+    const endDate = new Date(`${year}-12-31T23:59:59.999-05:00`);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new BadRequestException('El año proporcionado no es válido');
+    }
 
     const where: any = {
       appointmentDate: {
         gte: startDate,
         lte: endDate,
+      },
+      status: {
+        name: {
+          in: ['Completada', 'Cancelada', 'No Asistió'],
+        },
       },
     };
 
@@ -366,6 +410,85 @@ export class AppointmentsService {
     };
   }
 
+  async getPendingReminders(): Promise<Appointment[]> {
+    const config = await this.schedulingService.getConfig();
+    const days = config.reminderDaysBefore || 1;
+
+    const now = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(now.getDate() + days);
+
+    // Buscar citas agendadas dentro del rango que no hayan sido notificadas
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        status: { name: 'Agendada' },
+        appointmentDate: {
+          gte: now,
+          lte: targetDate,
+        },
+        reminderSentAt: null,
+      },
+      include: APPOINTMENT_INCLUDE,
+      orderBy: { appointmentDate: 'asc' },
+    });
+
+    return appointments.map((a) => this.mapAppointment(a));
+  }
+
+  async markReminderAsSent(id: number): Promise<void> {
+    await this.prisma.appointment.update({
+      where: { id },
+      data: { reminderSentAt: new Date() },
+    });
+  }
+
+  async findByToken(token: string): Promise<any> {
+    const appt = await this.prisma.appointment.findUnique({
+      where: { confirmationToken: token },
+      include: APPOINTMENT_INCLUDE,
+    });
+
+    if (!appt) throw new NotFoundException('Enlace de confirmación inválido');
+    if (appt.tokenUsed) throw new BadRequestException('Este enlace ya ha sido utilizado');
+
+    const config = await this.schedulingService.getConfig();
+
+    return {
+      appointment: this.mapAppointment(appt),
+      businessPhone: config.businessPhone,
+    };
+  }
+
+  async processConfirmation(token: string, action: 'confirm' | 'cancel'): Promise<void> {
+    const result = await this.findByToken(token);
+    const appt = result.appointment;
+
+    const statusName = action === 'confirm' ? 'Confirmada' : 'Cancelada';
+    const targetStatus = await this.prisma.appointmentStatus.findFirst({
+      where: { name: statusName },
+    });
+
+    if (!targetStatus) throw new BadRequestException(`Estado ${statusName} no encontrado`);
+
+    await this.prisma.$transaction([
+      this.prisma.appointment.update({
+        where: { id: BigInt(appt.id) },
+        data: {
+          statusId: targetStatus.id,
+          tokenUsed: true,
+        },
+      }),
+      this.prisma.followUp.create({
+        data: {
+          clientId: BigInt(appt.clientId),
+          appointmentId: BigInt(appt.id),
+          typeId: (await this.prisma.followUpType.findFirst({ where: { name: 'Cambio de Estado' } }))?.id || 1n,
+          description: `Cita ${action === 'confirm' ? 'Confirmada' : 'Cancelada'} por el cliente mediante enlace público.`,
+        },
+      }),
+    ]);
+  }
+
   /**
    * Calcula la sugerencia de próxima cita para un cliente dado,
    * basándose en su última cita completada o la fecha actual.
@@ -501,6 +624,9 @@ export class AppointmentsService {
       appointmentDate: raw.appointmentDate.toISOString(),
       statusId: Number(raw.statusId),
       notes: raw.notes,
+      confirmationToken: raw.confirmationToken,
+      tokenUsed: raw.tokenUsed,
+      reminderSentAt: raw.reminderSentAt ? raw.reminderSentAt.toISOString() : null,
       createdAt: raw.createdAt.toISOString(),
       updatedAt: raw.updatedAt.toISOString(),
       client: raw.client

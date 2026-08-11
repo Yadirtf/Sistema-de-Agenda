@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "db:push": "prisma db push --schema=prisma/schema.prisma --accept-data-loss",
+    "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:seed": "prisma db seed",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "dev": "nest start --watch",

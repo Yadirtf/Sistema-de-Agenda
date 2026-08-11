@@ -139,7 +139,7 @@ export function RescheduleFlowModal({
               onClick={onClose}
             >
               <MessageSquare size={18} />
-              <span>Notificar por WhatsApp</span>
+              <span>Notificación</span>
             </a>
 
             <button className="btn btn-ghost" onClick={onClose} style={{ marginTop: '0.5rem' }}>

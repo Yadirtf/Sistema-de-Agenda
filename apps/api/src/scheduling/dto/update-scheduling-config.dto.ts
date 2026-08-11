@@ -46,4 +46,13 @@ export class UpdateSchedulingConfigDto {
   @Max(480, { message: 'La duración máxima del slot es 480 minutos' })
   @IsOptional()
   slotDurationMinutes?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  reminderDaysBefore?: number;
+
+  @IsString()
+  @IsOptional()
+  businessPhone?: string;
 }

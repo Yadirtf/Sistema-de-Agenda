@@ -64,6 +64,8 @@ export class SchedulingService {
           businessEndTime: this.parseTime(dto.businessEndTime),
         }),
         ...(dto.slotDurationMinutes !== undefined && { slotDurationMinutes: dto.slotDurationMinutes }),
+        ...(dto.reminderDaysBefore !== undefined && { reminderDaysBefore: dto.reminderDaysBefore }),
+        ...(dto.businessPhone !== undefined && { businessPhone: dto.businessPhone }),
       },
       include: { defaultInterval: true },
     });
@@ -266,6 +268,8 @@ export class SchedulingService {
       businessStartTime: this.formatTime(raw.businessStartTime),
       businessEndTime: this.formatTime(raw.businessEndTime),
       slotDurationMinutes: raw.slotDurationMinutes,
+      reminderDaysBefore: raw.reminderDaysBefore,
+      businessPhone: raw.businessPhone,
       createdAt: raw.createdAt.toISOString(),
       updatedAt: raw.updatedAt.toISOString(),
       defaultInterval: raw.defaultInterval

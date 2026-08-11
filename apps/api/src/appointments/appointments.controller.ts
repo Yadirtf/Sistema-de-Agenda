@@ -43,6 +43,16 @@ export class AppointmentsController {
     return this.appointmentsService.suggestNext(clientId);
   }
 
+  @Get('pending-reminders')
+  async getPendingReminders() {
+    return this.appointmentsService.getPendingReminders();
+  }
+
+  @Patch(':id/reminder-sent')
+  async markReminderAsSent(@Param('id', ParseIntPipe) id: number) {
+    return this.appointmentsService.markReminderAsSent(id);
+  }
+
   @Get('yearly-history')
   async getYearlyHistory(
     @Query('year') year: string,

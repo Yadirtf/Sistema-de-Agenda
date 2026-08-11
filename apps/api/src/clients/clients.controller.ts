@@ -3,13 +3,18 @@ import {
   Get,
   Post,
   Put,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
   ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
+import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateClientEntryDto } from './dto/create-client-entry.dto';
 import { UpsertClientSchedulingConfigDto } from './dto/upsert-client-scheduling-config.dto';
 
@@ -38,6 +43,20 @@ export class ClientsController {
   @Post()
   async create(@Body() dto: CreateClientDto) {
     return this.clientsService.create(dto);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateClientDto,
+  ) {
+    return this.clientsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.remove(id);
   }
 
   @Get(':id/entries')

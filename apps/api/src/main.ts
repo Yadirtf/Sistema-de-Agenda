@@ -4,6 +4,9 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 
+// Forzar zona horaria local
+process.env.TZ = 'America/Bogota';
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestFastifyApplication>(

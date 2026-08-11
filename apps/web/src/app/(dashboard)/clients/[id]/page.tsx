@@ -16,9 +16,13 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import { apiClient, ApiClientError } from '@/lib/api-client';
 import { Client, ClientEntry, CatalogItem, SchedulingInterval } from '@agendamiento/shared';
+import { EditClientModal } from '@/components/clients/EditClientModal';
+import { DeleteClientModal } from '@/components/clients/DeleteClientModal';
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -32,6 +36,10 @@ export default function ClientDetailPage() {
   const [newEntryDate, setNewEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [addingEntry, setAddingEntry] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Modals state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Fetch client details
   const { data: client, isLoading, isError } = useQuery({
@@ -134,9 +142,28 @@ export default function ClientDetailPage() {
             </p>
           </div>
 
-          <span className={`badge ${person?.status?.name === 'Activo' ? 'badge-success' : 'badge-danger'}`} style={{ padding: '0.375rem 0.875rem', fontSize: '0.875rem' }}>
-            {person?.status?.name || 'Activo'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsEditModalOpen(true)}
+              title="Editar información personal"
+            >
+              <Edit size={18} />
+              <span>Editar</span>
+            </button>
+            <button
+              className="btn btn-ghost"
+              style={{ color: 'var(--danger-text)' }}
+              onClick={() => setIsDeleteModalOpen(true)}
+              title="Eliminar cliente permanentemente"
+            >
+              <Trash2 size={18} />
+              <span>Eliminar</span>
+            </button>
+            <span className={`badge ${person?.status?.name === 'Activo' ? 'badge-success' : 'badge-danger'}`} style={{ padding: '0.375rem 0.875rem', fontSize: '0.875rem', marginLeft: '0.5rem' }}>
+              {person?.status?.name || 'Activo'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -243,29 +270,10 @@ export default function ClientDetailPage() {
 
       {/* Client Entries History */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={20} style={{ color: 'var(--primary-500)' }} />
           <span>Historial de Ingresos del Cliente</span>
         </h2>
-
-        {/* Add Entry Form */}
-        <form onSubmit={handleAddEntry} style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', background: 'var(--bg-app)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-          <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
-            <label className="form-label">Registrar Nuevo Ingreso</label>
-            <input
-              type="date"
-              className="input"
-              value={newEntryDate}
-              onChange={(e) => setNewEntryDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn btn-secondary" disabled={addingEntry} style={{ marginTop: '1.5rem' }}>
-            <Plus size={16} />
-            <span>{addingEntry ? 'Registrando...' : 'Agregar Ingreso'}</span>
-          </button>
-        </form>
 
         {/* Entries List */}
         {entries && entries.length > 0 ? (
@@ -316,6 +324,29 @@ export default function ClientDetailPage() {
           </p>
         )}
       </div>
+
+      {/* Modals */}
+      {client && (
+        <>
+          <EditClientModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            client={client}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['client', clientId] });
+              setMessage({ type: 'success', text: 'Datos del cliente actualizados.' });
+            }}
+          />
+          <DeleteClientModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            client={client}
+            onSuccess={() => {
+              router.push('/clients');
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }
