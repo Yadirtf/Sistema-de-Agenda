@@ -371,10 +371,10 @@ export class ClientsService {
     const personId = BigInt(client.personId);
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Eliminar seguimientos
+      // 1. Eliminar seguimientos donde el cliente es el sujeto
       await tx.followUp.deleteMany({ where: { clientId } });
 
-      // 2. Eliminar reagendamientos vinculados a las citas del cliente
+      // 2. Identificar todas las citas del cliente
       const appointments = await tx.appointment.findMany({
         where: { clientId },
         select: { id: true },
@@ -382,6 +382,14 @@ export class ClientsService {
       const appointmentIds = appointments.map((a) => a.id);
 
       if (appointmentIds.length > 0) {
+        // 3. Romper la cadena de citas (autoreferencias) para evitar conflictos de integridad
+        // al eliminar en lote records con unique constraints autoreferenciados
+        await tx.appointment.updateMany({
+          where: { id: { in: appointmentIds } },
+          data: { previousAppointmentId: null },
+        });
+
+        // 4. Eliminar reagendamientos vinculados a estas citas
         await tx.rescheduling.deleteMany({
           where: {
             OR: [
@@ -390,23 +398,21 @@ export class ClientsService {
             ],
           },
         });
+
+        // 5. Eliminar las citas
+        await tx.appointment.deleteMany({ where: { id: { in: appointmentIds } } });
       }
 
-      // 3. Eliminar citas (manejar autoreferencia si es necesario,
-      // aunque deleteMany suele funcionar si no hay restricciones de clave foránea activas en el motor para la misma tabla durante la operación)
-      await tx.appointment.deleteMany({ where: { clientId } });
-
-      // 4. Eliminar ingresos
+      // 6. Eliminar ingresos del cliente
       await tx.clientEntry.deleteMany({ where: { clientId } });
 
-      // 5. Eliminar configuración de agendamiento (aunque es Cascade, lo aseguramos)
+      // 7. Eliminar configuración de agendamiento
       await tx.clientSchedulingConfig.deleteMany({ where: { clientId } });
 
-      // 6. Eliminar el cliente
+      // 8. Eliminar el registro de cliente
       await tx.client.delete({ where: { id: clientId } });
 
-      // 7. Eliminar la persona (si no es un usuario o profesional, pero aquí asumimos que el cliente es su propio ente)
-      // Solo eliminamos si no tiene otras relaciones críticas (como ser un usuario del sistema)
+      // 9. Eliminar la persona (solo si no es un usuario del sistema o profesional activo)
       const user = await tx.user.findUnique({ where: { personId } });
       if (!user) {
         await tx.people.delete({ where: { id: personId } });
