@@ -27,6 +27,7 @@ export class AppointmentsController {
     @Query('dateTo') dateTo?: string,
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
+    @Query('search') search?: string,
   ) {
     return this.appointmentsService.findAll({
       clientId: clientId ? parseInt(clientId, 10) : undefined,
@@ -35,6 +36,7 @@ export class AppointmentsController {
       dateTo,
       page: page ? parseInt(page, 10) : 1,
       perPage: perPage ? parseInt(perPage, 10) : 20,
+      search,
     });
   }
 

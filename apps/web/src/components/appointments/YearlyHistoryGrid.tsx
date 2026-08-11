@@ -47,8 +47,8 @@ export function YearlyHistoryGrid() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Filters & Navigation */}
       <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-app)', padding: '0.25rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 auto', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-app)', padding: '0.25rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             <button className="btn btn-ghost btn-sm" onClick={() => setYear(year - 1)}>
               <ChevronLeft size={16} />
             </button>
@@ -58,20 +58,20 @@ export function YearlyHistoryGrid() {
             </button>
           </div>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '400px' }}>
             <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               className="input"
               placeholder="Buscar por nombre o cédula..."
-              style={{ paddingLeft: '2.5rem', width: '300px' }}
+              style={{ paddingLeft: '2.5rem', width: '100%' }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
             <Filter size={16} />
             <span>Filtrar por Mes:</span>

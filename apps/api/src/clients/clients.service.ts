@@ -21,6 +21,7 @@ export class ClientsService {
 
   async findAll(query?: {
     search?: string;
+    statusId?: number;
     page?: number;
     perPage?: number;
   }): Promise<PaginatedResponse<Client>> {
@@ -40,6 +41,14 @@ export class ClientsService {
           { phone: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
         ],
+      };
+    }
+
+    if (query?.statusId) {
+      where.appointments = {
+        some: {
+          statusId: query.statusId,
+        },
       };
     }
 

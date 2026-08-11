@@ -51,6 +51,7 @@ export class AppointmentsService {
     dateTo?: string;
     page?: number;
     perPage?: number;
+    search?: string;
   }): Promise<PaginatedResponse<Appointment>> {
     const page = Number(query?.page) || 1;
     const perPage = Number(query?.perPage) || 20;
@@ -59,6 +60,19 @@ export class AppointmentsService {
     const where: any = {};
     if (query?.clientId) where.clientId = Number(query.clientId);
     if (query?.statusId) where.statusId = Number(query.statusId);
+
+    if (query?.search) {
+      where.client = {
+        person: {
+          OR: [
+            { firstName: { contains: query.search, mode: 'insensitive' } },
+            { lastName: { contains: query.search, mode: 'insensitive' } },
+            { documentNumber: { contains: query.search, mode: 'insensitive' } },
+          ],
+        },
+      };
+    }
+
     if (query?.dateFrom || query?.dateTo) {
       where.appointmentDate = {};
       if (query?.dateFrom) {
@@ -215,7 +229,7 @@ export class AppointmentsService {
       },
       status: {
         name: {
-          in: ['Completada', 'Cancelada', 'No Asistió'],
+          in: ['Sin agendar', 'Completada', 'Cancelada', 'No Asistió'],
         },
       },
     };
