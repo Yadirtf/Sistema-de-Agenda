@@ -4,15 +4,15 @@ services:
     container_name: agenda-db
     restart: always
     environment:
-      POSTGRES_USER: user_agenda
-      POSTGRES_PASSWORD: password_agenda
-      POSTGRES_DB: agenda_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - agenda_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user_agenda -d agenda_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,15 +24,15 @@ services:
     container_name: agenda-api
     restart: always
     environment:
-      DATABASE_URL: "postgresql://user_agenda:password_agenda@db:5432/agenda_db?schema=public"
-      JWT_SECRET: "tu_secreto_super_seguro"
-      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: ${PORT_API}
     depends_on:
       db:
         condition: service_healthy
     command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js"
     ports:
-      - "3001:3001"
+      - "${PORT_API}:${PORT_API}"
 
   web:
     build:
@@ -41,13 +41,13 @@ services:
     container_name: agenda-web
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: "http://tu-ip-o-dominio:3001"
-      PORT: 3000
+      NEXT_PUBLIC_API_URL: "http://${SERVER_IP}:${PORT_API}"
+      PORT: ${PORT_WEB}
     depends_on:
       - api
     command: npm start --workspace=web
     ports:
-      - "3000:3000"
+      - "${PORT_WEB}:${PORT_WEB}"
 
 volumes:
   agenda_db_data:
