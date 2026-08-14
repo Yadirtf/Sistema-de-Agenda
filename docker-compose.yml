@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - agenda_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_agenda -d agenda_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -23,7 +28,8 @@ services:
       JWT_SECRET: "tu_secreto_super_seguro"
       PORT: 3001
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js"
     ports:
       - "3001:3001"
