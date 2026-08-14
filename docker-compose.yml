@@ -31,12 +31,22 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       API_PORT: ${PORT_API}
       API_PREFIX: api/v1
+      REDIS_URL: "redis://agenda-redis:6379"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && npm run start:prod --workspace=api"
     ports:
       - "${PORT_API}:${PORT_API}"
+    networks:
+      - agenda-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: agenda-redis
+    restart: always
     networks:
       - agenda-net
 
