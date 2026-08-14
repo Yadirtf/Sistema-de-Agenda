@@ -32,5 +32,8 @@
   "devDependencies": {
     "defaults": "3.0.0",
     "prisma": "5.22.0"
+  },
+  "prisma": {
+    "seed": "npx ts-node apps/api/prisma/seed.ts"
   }
 }
