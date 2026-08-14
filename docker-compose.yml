@@ -29,11 +29,12 @@ services:
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@agenda-db:5432/${POSTGRES_DB}?schema=public"
       JWT_SECRET: ${JWT_SECRET}
-      PORT: ${PORT_API}
+      API_PORT: ${PORT_API}
+      API_PREFIX: api/v1
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js"
+    command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && npm run start:prod --workspace=api"
     ports:
       - "${PORT_API}:${PORT_API}"
     networks:
@@ -46,7 +47,7 @@ services:
     container_name: agenda-web
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: "http://${SERVER_IP}:${PORT_API}"
+      NEXT_PUBLIC_API_URL: "http://${SERVER_IP}:${PORT_API}/api/v1"
       PORT: ${PORT_WEB}
     depends_on:
       - api
