@@ -1,48 +1,47 @@
 services:
-  # ============================================
-  # PostgreSQL 16
-  # ============================================
-  postgres:
-    image: postgres:16-alpine
-    container_name: agendamiento-postgres
-    restart: unless-stopped
+  db:
+    image: postgres:15-alpine
+    container_name: agenda-db
+    restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-agendamiento_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-agendamiento_pass}
-      POSTGRES_DB: ${DB_NAME:-agendamiento_db}
-      TZ: America/Bogota
-      PGTZ: America/Bogota
+      POSTGRES_USER: user_agenda
+      POSTGRES_PASSWORD: password_agenda
+      POSTGRES_DB: agenda_db
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infra/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./infra/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-agendamiento_user} -d ${DB_NAME:-agendamiento_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - agenda_db_data:/var/lib/postgresql/data
 
-  # ============================================
-  # Redis 7
-  # ============================================
-  redis:
-    image: redis:7-alpine
-    container_name: agendamiento-redis
-    restart: unless-stopped
+  api:
+    build:
+      context: .
+      target: runner
+    container_name: agenda-api
+    restart: always
+    environment:
+      DATABASE_URL: "postgresql://user_agenda:password_agenda@db:5432/agenda_db?schema=public"
+      JWT_SECRET: "tu_secreto_super_seguro"
+      PORT: 3001
+    depends_on:
+      - db
+    command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main.js"
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      target: runner
+    container_name: agenda-web
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: "http://tu-ip-o-dominio:3001"
+      PORT: 3000
+    depends_on:
+      - api
+    command: npm start --workspace=web
+    ports:
+      - "3000:3000"
 
 volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
+  agenda_db_data:
