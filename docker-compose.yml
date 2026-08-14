@@ -33,7 +33,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && node apps/api/dist/main"
+    command: sh -c "npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && npm run start:prod --workspace=api"
     ports:
       - "${PORT_API}:${PORT_API}"
     networks:
