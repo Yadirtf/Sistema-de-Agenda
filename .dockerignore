@@ -1,10 +1,7 @@
 node_modules
-dist
 .next
 out
 *.log
 .git
 .env
-apps/api/dist
 apps/web/.next
-packages/shared/dist

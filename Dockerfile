@@ -23,7 +23,7 @@ RUN npm run build --workspace=@agendamiento/shared
 # Generar Prisma
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Compilar API y Web por separado para mayor control
+# Compilar API y Web por separado
 RUN npm run build --workspace=api
 RUN npm run build --workspace=web
 
@@ -33,6 +33,7 @@ FROM node:22-slim AS runner
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
+# Copiar todo desde builder (incluyendo dist de cada app)
 COPY --from=builder /app ./
 
 EXPOSE 3000 3001
