@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import helmet from '@fastify/helmet';
 import { AppModule } from './app.module';
 
 // Forzar zona horaria local
@@ -21,9 +22,21 @@ async function bootstrap() {
   // Prefix
   app.setGlobalPrefix(prefix);
 
+  // Helmet para seguridad de cabeceras
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: [`'self'`],
+        styleSrc: [`'self'`, `'unsafe-inline'`],
+        imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
+        scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
+      },
+    },
+  });
+
   // CORS
   app.enableCors({
-    origin: true,
+    origin: configService.get<string>('ALLOWED_ORIGINS', '*').split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],

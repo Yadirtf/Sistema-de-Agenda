@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +14,8 @@ import { SchedulingModule } from './scheduling/scheduling.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { ReschedulingsModule } from './reschedulings/reschedulings.module';
 import { FollowUpsModule } from './follow-ups/follow-ups.module';
+import { EventsModule } from './common/events/events.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -25,6 +29,17 @@ import { AppService } from './app.service';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          ttl: config.get<number>('THROTTLE_TTL', 60000),
+          limit: config.get<number>('THROTTLE_LIMIT', 100),
+        },
+      ],
+    }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -36,10 +51,16 @@ import { AppService } from './app.service';
     AppointmentsModule,
     ReschedulingsModule,
     FollowUpsModule,
+    EventsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

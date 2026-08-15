@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Filter,
   AlertCircle,
+  MessageCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Client, Appointment, PaginatedResponse } from '@agendamiento/shared';
@@ -260,14 +261,29 @@ export default function ClientsPage() {
                       </td>
 
                       <td style={{ padding: '1rem', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <Link
-                          href={`/clients/${client.id}`}
-                          className="btn btn-ghost"
-                          style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
-                        >
-                          <span>Perfil</span>
-                          <ChevronRight size={16} />
-                        </Link>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                          {person?.phone && (
+                            <a
+                              href={`https://wa.me/${person.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(person.firstName)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-ghost"
+                              style={{ padding: '0.375rem', color: '#25D366' }}
+                              title="Enviar WhatsApp"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MessageCircle size={18} />
+                            </a>
+                          )}
+                          <Link
+                            href={`/clients/${client.id}`}
+                            className="btn btn-ghost"
+                            style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                          >
+                            <span>Perfil</span>
+                            <ChevronRight size={16} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

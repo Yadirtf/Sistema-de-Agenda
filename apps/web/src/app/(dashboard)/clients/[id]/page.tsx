@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   User,
@@ -11,11 +11,9 @@ import {
   Mail,
   Calendar,
   Clock,
-  Plus,
   Save,
   CheckCircle2,
   AlertCircle,
-  FileText,
   Edit,
   Trash2,
 } from 'lucide-react';
@@ -23,6 +21,7 @@ import { apiClient, ApiClientError } from '@/lib/api-client';
 import { Client, ClientEntry, CatalogItem, SchedulingInterval } from '@agendamiento/shared';
 import { EditClientModal } from '@/components/clients/EditClientModal';
 import { DeleteClientModal } from '@/components/clients/DeleteClientModal';
+import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -33,13 +32,10 @@ export default function ClientDetailPage() {
   const [selectedIntervalId, setSelectedIntervalId] = useState<number | null>(null);
   const [intervalNotes, setIntervalNotes] = useState('');
   const [savingConfig, setSavingConfig] = useState(false);
-  const [newEntryDate, setNewEntryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [addingEntry, setAddingEntry] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCreateApptModalOpen, setIsCreateApptModalOpen] = useState(false);
 
   // Fetch client details
   const { data: client, isLoading, isError } = useQuery({
@@ -86,28 +82,6 @@ export default function ClientDetailPage() {
     }
   };
 
-  const handleAddEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEntryDate) return;
-
-    try {
-      setAddingEntry(true);
-      setMessage(null);
-
-      await apiClient.post(`/clients/${clientId}/entries`, {
-        entryDate: newEntryDate,
-        statusId: 1, // Activo
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['client-entries', clientId] });
-      setMessage({ type: 'success', text: 'Nuevo ingreso registrado.' });
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Error al registrar el ingreso.' });
-    } finally {
-      setAddingEntry(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -143,6 +117,14 @@ export default function ClientDetailPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsCreateApptModalOpen(true)}
+              title="Programar nueva cita para este cliente"
+            >
+              <Calendar size={18} />
+              <span>Agendar Cita</span>
+            </button>
             <button
               className="btn btn-secondary"
               onClick={() => setIsEditModalOpen(true)}
@@ -218,6 +200,27 @@ export default function ClientDetailPage() {
                 {person?.birthDate ? new Date(person.birthDate).toLocaleDateString('es-CO') : 'Sin registrar'}
               </p>
             </div>
+
+            {entries && entries.length > 0 && (
+              <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-subtle)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Fecha de Ingreso al Sistema</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.125rem' }}>
+                  <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Calendar size={16} style={{ color: 'var(--primary-500)' }} />
+                    <span>
+                      {new Date(entries[0].entryDate).toLocaleDateString('es-CO', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </p>
+                  <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                    Semana {Math.ceil(new Date(entries[0].entryDate).getDate() / 7)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -268,63 +271,6 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Client Entries History */}
-      <div className="glass-card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={20} style={{ color: 'var(--primary-500)' }} />
-          <span>Historial de Ingresos del Cliente</span>
-        </h2>
-
-        {/* Entries List */}
-        {entries && entries.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {entries.map((entry) => {
-              const entryDate = new Date(entry.entryDate);
-              const dayOfMonth = entryDate.getDate();
-              const weekOfMonth = Math.ceil(dayOfMonth / 7);
-
-              return (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.875rem 1.25rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-subtle)',
-                    backgroundColor: 'var(--bg-surface)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Calendar size={18} style={{ color: 'var(--primary-500)' }} />
-                    <div>
-                      <p style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
-                        {entryDate.toLocaleDateString('es-CO', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Semana {weekOfMonth} del mes
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="badge badge-success">{entry.status?.name || 'Activo'}</span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            No hay registros de ingreso para este cliente.
-          </p>
-        )}
-      </div>
-
       {/* Modals */}
       {client && (
         <>
@@ -344,6 +290,11 @@ export default function ClientDetailPage() {
             onSuccess={() => {
               router.push('/clients');
             }}
+          />
+          <CreateAppointmentModal
+            isOpen={isCreateApptModalOpen}
+            onClose={() => setIsCreateApptModalOpen(false)}
+            clientId={clientId}
           />
         </>
       )}

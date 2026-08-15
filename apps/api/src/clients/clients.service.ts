@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { PeopleService } from '../people/people.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -17,6 +18,7 @@ export class ClientsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly peopleService: PeopleService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(query?: {
@@ -266,7 +268,12 @@ export class ClientsService {
       },
     });
 
-    return this.findOne(Number(created.id));
+    const clientDto = await this.findOne(Number(created.id));
+
+    // Emitir evento de creación de cliente
+    this.eventEmitter.emit('client.created', clientDto);
+
+    return clientDto;
   }
 
   async addEntry(clientId: number, dto: CreateClientEntryDto): Promise<ClientEntry> {

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { RealTimeSyncProvider } from '@/components/providers/RealTimeSyncProvider';
 
 export const metadata: Metadata = {
   title: 'Sistema de Agendamiento - Gestión Inteligente de Citas',
@@ -17,7 +18,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <RealTimeSyncProvider>
+              {children}
+            </RealTimeSyncProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

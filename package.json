@@ -30,11 +30,12 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "defaults": "3.0.0",
+    "p-limit": "7.3.1",
     "prisma": "5.22.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.7.3"
   },
   "prisma": {
     "seed": "ts-node apps/api/prisma/seed.ts"

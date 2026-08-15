@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Filter, Calendar, User, Clock, RefreshCw, AlertCircle, Plus } from 'lucide-react';
+import { Search, Filter, Calendar, User, Clock, RefreshCw, AlertCircle, Plus, ChevronDown, MessageCircle } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { Client, CatalogItem, PaginatedResponse } from '@agendamiento/shared';
+import { Client, CatalogItem, PaginatedResponse, Appointment } from '@agendamiento/shared';
 
 interface GeneralClientsTabProps {
   onRebook: (client: Client) => void;
+  onStatusChange?: (appt: Appointment, status: CatalogItem) => void;
 }
 
-export function GeneralClientsTab({ onRebook }: GeneralClientsTabProps) {
+export function GeneralClientsTab({ onRebook, onStatusChange }: GeneralClientsTabProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
@@ -214,27 +215,101 @@ export function GeneralClientsTab({ onRebook }: GeneralClientsTabProps) {
 
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
                         {canAction(statusName) ? (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => onRebook(client)}
-                            style={{ padding: '0.4rem 0.75rem', gap: '0.375rem' }}
-                          >
-                            {latestAppt ? (
-                              <>
-                                <RefreshCw size={14} />
-                                <span>Reagendar</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus size={14} />
-                                <span>Agendar</span>
-                              </>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => onRebook(client)}
+                              style={{ padding: '0.4rem 0.75rem', gap: '0.375rem' }}
+                            >
+                              {latestAppt ? (
+                                <>
+                                  <RefreshCw size={14} />
+                                  <span>Reagendar</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus size={14} />
+                                  <span>Agendar</span>
+                                </>
+                              )}
+                            </button>
+                            {person?.phone && (
+                              <a
+                                href={`https://wa.me/${person.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(person.firstName)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '0.4rem', color: '#25D366', minWidth: 'auto' }}
+                                title="Enviar WhatsApp"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MessageCircle size={16} />
+                              </a>
                             )}
-                          </button>
+                          </div>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', color: 'var(--success-text)', fontSize: '0.75rem', fontWeight: 600 }}>
-                            <Clock size={14} />
-                            <span>Cita en curso/prog.</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <select
+                                className="input"
+                                style={{
+                                  padding: '0.375rem 2rem 0.375rem 0.75rem',
+                                  fontSize: '0.8125rem',
+                                  cursor: 'pointer',
+                                  backgroundColor: 'var(--bg-app)',
+                                  border: '1px solid var(--border-subtle)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  appearance: 'none',
+                                  minWidth: '140px',
+                                }}
+                                value=""
+                                onChange={(e) => {
+                                  const statusId = e.target.value;
+                                  if (!statusId || !latestAppt) return;
+                                  const selectedStatus = statuses?.find((s) => s.id.toString() === statusId);
+                                  if (selectedStatus && onStatusChange) {
+                                    onStatusChange(latestAppt, selectedStatus);
+                                  }
+                                }}
+                              >
+                                <option value="" disabled>Cambiar Estado</option>
+                                {statuses?.filter(s => s.id !== latestAppt?.statusId).map((s) => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                              <ChevronDown
+                                size={14}
+                                style={{
+                                  position: 'absolute',
+                                  right: '0.75rem',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  pointerEvents: 'none',
+                                  color: 'var(--text-muted)'
+                                }}
+                              />
+                            </div>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => onRebook(client)}
+                              title="Reagendar/Nueva Cita"
+                              style={{ padding: '0.4rem', minWidth: 'auto' }}
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                            {person?.phone && (
+                              <a
+                                href={`https://wa.me/${person.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(person.firstName)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '0.4rem', color: '#25D366', minWidth: 'auto' }}
+                                title="Enviar WhatsApp"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MessageCircle size={16} />
+                              </a>
+                            )}
                           </div>
                         )}
                       </td>

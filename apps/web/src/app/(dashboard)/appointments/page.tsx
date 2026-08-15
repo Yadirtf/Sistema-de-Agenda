@@ -225,6 +225,10 @@ export default function AppointmentsPage() {
             setSelectedClientForRebook(client);
             setIsCreateModalOpen(true);
           }}
+          onStatusChange={(appt, status) => {
+            setSelectedApptForStatus(appt);
+            setTargetStatus(status);
+          }}
         />
       ) : activeTab === 'yearly' ? (
         <YearlyHistoryGrid />

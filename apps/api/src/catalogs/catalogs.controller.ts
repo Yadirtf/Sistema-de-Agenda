@@ -1,7 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
 import { CatalogsService } from './catalogs.service';
 import { Public } from '../common/decorators/public.decorator';
+import { CacheInterceptor } from '../common/interceptors/cache.interceptor';
 
+@UseInterceptors(CacheInterceptor)
 @Controller('catalogs')
 export class CatalogsController {
   constructor(private readonly catalogsService: CatalogsService) {}

@@ -13,14 +13,22 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
+import { DashboardStats } from '@agendamiento/shared';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => apiClient.get<DashboardStats>('/dashboard/stats'),
+  });
+
   const kpis = [
     {
       title: 'Citas de Hoy',
-      value: '0',
+      value: isLoading ? '...' : stats?.todayAppointments.toString() || '0',
       description: 'Programadas para la jornada',
       icon: Calendar,
       color: 'var(--primary-500)',
@@ -28,7 +36,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Confirmadas',
-      value: '0',
+      value: isLoading ? '...' : stats?.confirmedAppointments.toString() || '0',
       description: 'Clientes confirmados',
       icon: CheckCircle2,
       color: 'var(--success-text)',
@@ -36,7 +44,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Pendientes',
-      value: '0',
+      value: isLoading ? '...' : stats?.pendingAppointments.toString() || '0',
       description: 'Por confirmar / agendar',
       icon: Clock,
       color: 'var(--warning-text)',
@@ -44,7 +52,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Clientes Activos',
-      value: '0',
+      value: isLoading ? '...' : stats?.activeClients.toString() || '0',
       description: 'Registrados en sistema',
       icon: UserCheck,
       color: 'var(--info-text)',

@@ -181,6 +181,13 @@ export interface WeekCapacityResponse {
   weeks: WeekCapacityItem[];
 }
 
+export interface DashboardStats {
+  todayAppointments: number;
+  confirmedAppointments: number;
+  pendingAppointments: number;
+  activeClients: number;
+}
+
 export interface CompleteAppointmentResponse {
   completedAppointment: Appointment;
   nextAppointmentSuggestion: NextAppointmentSuggestion | null;
