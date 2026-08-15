@@ -23,6 +23,10 @@ RUN npm run build --workspace=@agendamiento/shared
 # Generar Prisma
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
+# --- PASO CRÍTICO: Definir variables de entorno para el build de Next.js ---
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Compilar API y Web por separado
 RUN npm run build --workspace=api
 RUN npm run build --workspace=web

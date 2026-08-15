@@ -24,6 +24,8 @@ services:
     build:
       context: .
       target: runner
+      args:
+        - NEXT_PUBLIC_API_URL=http://${SERVER_IP}:${PORT_API}/api/v1
     container_name: agenda-api
     restart: always
     environment:
@@ -54,6 +56,8 @@ services:
     build:
       context: .
       target: runner
+      args:
+        - NEXT_PUBLIC_API_URL=http://${SERVER_IP}:${PORT_API}/api/v1
     container_name: agenda-web
     restart: always
     environment:
