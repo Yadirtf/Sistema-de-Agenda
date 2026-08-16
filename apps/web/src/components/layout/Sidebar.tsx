@@ -31,7 +31,6 @@ export function Sidebar({ isOpen, isCollapsed, isMobile, onClose }: SidebarProps
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Citas', href: '/appointments', icon: Calendar },
     { name: 'Clientes', href: '/clients', icon: UserCheck },
-    { name: 'Periodos', href: '/scheduling', icon: CalendarDays },
     { name: 'Seguimientos', href: '/follow-ups', icon: MessageSquare },
   ];
 
