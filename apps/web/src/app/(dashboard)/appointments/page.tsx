@@ -22,6 +22,7 @@ import {
   Search,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { getStatusBadgeClass } from '@/lib/appointment-utils';
 import {
   Appointment,
   CatalogItem,
@@ -424,15 +425,7 @@ export default function AppointmentsPage() {
 
                           <td style={{ padding: '1rem' }}>
                             <span
-                              className={`badge ${
-                                isCompleted
-                                  ? 'badge-success'
-                                  : isCancelled
-                                  ? 'badge-danger'
-                                  : appt.status?.name === 'Agendada'
-                                  ? 'badge-info'
-                                  : 'badge-warning'
-                              }`}
+                              className={`badge ${getStatusBadgeClass(appt.status?.name)}`}
                             >
                               {appt.status?.name || 'Agendada'}
                             </span>

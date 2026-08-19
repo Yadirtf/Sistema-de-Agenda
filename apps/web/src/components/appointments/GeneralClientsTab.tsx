@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Filter, Calendar, User, Clock, RefreshCw, AlertCircle, Plus, ChevronDown, MessageCircle } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { getStatusBadgeClass } from '@/lib/appointment-utils';
 import { Client, CatalogItem, PaginatedResponse, Appointment } from '@agendamiento/shared';
 
 interface GeneralClientsTabProps {
@@ -18,7 +19,7 @@ export function GeneralClientsTab({ onRebook, onStatusChange }: GeneralClientsTa
 
   // Fetch clients with their latest appointment
   const { data, isLoading } = useQuery({
-    queryKey: ['clients-general', search, statusFilter, page],
+    queryKey: ['clients', 'general', search, statusFilter, page],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -187,13 +188,7 @@ export function GeneralClientsTab({ onRebook, onStatusChange }: GeneralClientsTa
                               </span>
                             </div>
                             <span
-                              className={`badge ${
-                                statusName === 'Completada'
-                                  ? 'badge-success'
-                                  : ['Cancelada', 'No Asistió'].includes(statusName || '')
-                                  ? 'badge-danger'
-                                  : 'badge-warning'
-                              }`}
+                              className={`badge ${getStatusBadgeClass(statusName)}`}
                               style={{ width: 'fit-content', fontSize: '0.7rem' }}
                             >
                               {statusName}

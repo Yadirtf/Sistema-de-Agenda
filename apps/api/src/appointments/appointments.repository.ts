@@ -112,6 +112,20 @@ export class AppointmentsRepository {
     });
   }
 
+  async findExpiredAppointments(thresholdDate: Date) {
+    return this.prisma.appointment.findMany({
+      where: {
+        status: {
+          name: { in: ['Agendada', 'Confirmada'] },
+        },
+        appointmentDate: {
+          lt: thresholdDate,
+        },
+      },
+      include: APPOINTMENT_INCLUDE,
+    });
+  }
+
   async runTransaction(operations: any[]) {
     return this.prisma.$transaction(operations);
   }

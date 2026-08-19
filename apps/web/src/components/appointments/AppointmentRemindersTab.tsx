@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, MessageSquare, ExternalLink, Calendar, User, Phone, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { getStatusBadgeClass } from '@/lib/appointment-utils';
 import { Appointment, SchedulingConfig } from '@agendamiento/shared';
 import { useState } from 'react';
 
@@ -83,7 +84,9 @@ export function AppointmentRemindersTab() {
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{appt.client?.person?.phone}</p>
                   </div>
                 </div>
-                <span className="badge badge-info">Agendada</span>
+                <span className={`badge ${getStatusBadgeClass(appt.status?.name)}`}>
+                  {appt.status?.name || 'Agendada'}
+                </span>
               </div>
 
               <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8125rem', backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: 'var(--radius-sm)' }}>

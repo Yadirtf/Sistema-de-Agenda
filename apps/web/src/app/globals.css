@@ -257,6 +257,18 @@ a {
   border: 1px solid var(--info-border);
 }
 
+.badge-secondary {
+  background: var(--bg-surface-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border-medium);
+}
+
+.badge-ghost {
+  background: transparent;
+  color: var(--text-light);
+  border: 1px dashed var(--border-medium);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

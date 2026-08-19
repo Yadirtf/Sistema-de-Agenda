@@ -21,9 +21,14 @@ export function useRealTimeSync() {
           case 'appointment.updated':
             // Invalidar listas de citas y detalles
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            // MUY IMPORTANTE: Invalidar la lista de clientes también,
-            // ya que la tabla de clientes muestra el "latestAppointment" y su estado.
+            queryClient.invalidateQueries({ queryKey: ['appointments-pending-reminders'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments-yearly-history'] });
+
+            // Invalidar la lista de clientes también (incluye la tabla general y dropdowns)
             queryClient.invalidateQueries({ queryKey: ['clients'] });
+            queryClient.invalidateQueries({ queryKey: ['clients-general'] }); // Por compatibilidad si quedó alguno
+            queryClient.invalidateQueries({ queryKey: ['clients-dropdown'] });
+
             // Invalidar estadísticas del dashboard
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
 

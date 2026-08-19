@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { X, Calendar, Clock, User, Phone, FileText, History, ClipboardList } from 'lucide-react';
 import { Appointment, FollowUp, PaginatedResponse } from '@agendamiento/shared';
 import { apiClient } from '@/lib/api-client';
+import { getStatusBadgeClass } from '@/lib/appointment-utils';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ export function AppointmentDetailsModal({
                 <ClipboardList size={14} />
                 <span>Estado Actual</span>
               </div>
-              <span className={`badge ${appointment.status?.name === 'Completada' ? 'badge-success' : 'badge-info'}`}>
+              <span className={`badge ${getStatusBadgeClass(appointment.status?.name)}`}>
                 {appointment.status?.name}
               </span>
             </div>

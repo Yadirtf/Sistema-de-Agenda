@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, CheckCircle2, AlertCircle, Info, Ban, HelpCircle } from 'lucide-react';
 import { CatalogItem } from '@agendamiento/shared';
+import { getStatusColor } from '@/lib/appointment-utils';
 
 interface StatusChangeModalProps {
   isOpen: boolean;
@@ -30,21 +31,11 @@ export function StatusChangeModal({
       case 'Cancelada':
         return <Ban size={24} className="text-danger" />;
       case 'No Asistió':
-        return <AlertCircle size={24} className="text-warning" />;
+        return <AlertCircle size={24} className="text-danger" />;
       case 'Confirmada':
         return <CheckCircle2 size={24} className="text-info" />;
       default:
         return <HelpCircle size={24} className="text-muted" />;
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status.name) {
-      case 'Completada': return 'var(--success-500)';
-      case 'Cancelada': return 'var(--danger-500)';
-      case 'No Asistió': return 'var(--warning-500)';
-      case 'Confirmada': return 'var(--info-500)';
-      default: return 'var(--primary-500)';
     }
   };
 
@@ -98,7 +89,7 @@ export function StatusChangeModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: getStatusColor(),
+              color: getStatusColor(status.name),
             }}
           >
             {getStatusIcon()}
@@ -144,7 +135,7 @@ export function StatusChangeModal({
             className="btn btn-primary"
             onClick={() => onConfirm(note)}
             disabled={loading}
-            style={{ backgroundColor: getStatusColor(), borderColor: getStatusColor() }}
+            style={{ backgroundColor: getStatusColor(status.name), borderColor: getStatusColor(status.name) }}
           >
             {loading ? 'Procesando...' : 'Confirmar Cambio'}
           </button>
@@ -153,3 +144,4 @@ export function StatusChangeModal({
     </div>
   );
 }
+

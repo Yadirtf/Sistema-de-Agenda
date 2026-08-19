@@ -17,6 +17,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { getStatusBadgeClass } from '@/lib/appointment-utils';
 import { Client, Appointment, PaginatedResponse } from '@agendamiento/shared';
 import { AppointmentDetailsModal } from '@/components/appointments/AppointmentDetailsModal';
 
@@ -219,15 +220,7 @@ export default function ClientsPage() {
                         {latestAppt ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <span
-                              className={`badge ${
-                                latestAppt.status?.name === 'Completada'
-                                  ? 'badge-success'
-                                  : ['Cancelada', 'No Asistió'].includes(latestAppt.status?.name || '')
-                                  ? 'badge-danger'
-                                  : latestAppt.status?.name === 'Agendada'
-                                  ? 'badge-info'
-                                  : 'badge-warning'
-                              }`}
+                              className={`badge ${getStatusBadgeClass(latestAppt.status?.name)}`}
                               style={{ width: 'fit-content' }}
                             >
                               {latestAppt.status?.name}

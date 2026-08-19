@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ChevronLeft, ChevronRight, Calendar, Filter, User } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { getStatusColor } from '@/lib/appointment-utils';
 import { YearlyHistoryResponse } from '@agendamiento/shared';
 
 export function YearlyHistoryGrid() {
@@ -26,15 +27,6 @@ export function YearlyHistoryGrid() {
     'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
     'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
   ];
-
-  const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case 'Completada': return 'var(--success-text)';
-      case 'Cancelada': return 'var(--danger-text)';
-      case 'No Asistió': return 'var(--warning-text)';
-      default: return 'transparent';
-    }
-  };
 
   const filteredData = history?.data.filter(item => {
     if (monthFilter === '') return true;
@@ -157,9 +149,10 @@ export function YearlyHistoryGrid() {
       {/* Legend */}
       <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', padding: '1rem', backgroundColor: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
         {[
+          { label: 'Agendada/Conf.', color: 'var(--info-text)', description: 'Cita programada o confirmada' },
           { label: 'Completada', color: 'var(--success-text)', description: 'Cita finalizada con éxito' },
           { label: 'Cancelada', color: 'var(--danger-text)', description: 'Cita anulada por el cliente o admin' },
-          { label: 'No Asistió', color: 'var(--warning-text)', description: 'El cliente no se presentó' },
+          { label: 'No Asistió', color: 'var(--danger-text)', description: 'El cliente no se presentó' },
         ].map(l => (
           <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: l.color, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
