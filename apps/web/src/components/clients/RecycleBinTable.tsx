@@ -21,6 +21,7 @@ export function RecycleBinTable() {
       queryClient.invalidateQueries({ queryKey: ['clients-bin'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduling-capacity'] });
     },
   });
 
@@ -28,6 +29,8 @@ export function RecycleBinTable() {
     mutationFn: (id: number) => apiClient.delete(`/clients/${id}/permanent`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients-bin'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduling-capacity'] });
     },
   });
 
@@ -35,8 +38,14 @@ export function RecycleBinTable() {
     mutationFn: () => apiClient.delete('/clients/bin/empty'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients-bin'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduling-capacity'] });
       setIsEmptying(false);
     },
+    onError: () => {
+      setIsEmptying(false);
+      alert('Hubo un error al vaciar la papelera. Algunos registros podrían no haberse eliminado.');
+    }
   });
 
   const handleRestore = (id: number) => {

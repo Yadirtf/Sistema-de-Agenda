@@ -83,8 +83,11 @@ export class SchedulingService {
     const startOfMonth = new Date(currentYear, currentMonth, 1);
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
 
-    // Obtener todos los ingresos iniciales de clientes para saber su semana de ingreso
+    // Obtener todos los ingresos iniciales de clientes (solo activos)
     const entries = await this.prisma.clientEntry.findMany({
+      where: {
+        client: { isDeleted: false },
+      },
       select: {
         clientId: true,
         entryDate: true,
@@ -108,13 +111,14 @@ export class SchedulingService {
       }
     });
 
-    // Obtener citas del mes actual
+    // Obtener citas del mes actual (solo de clientes activos)
     const appointmentsThisMonth = await this.prisma.appointment.findMany({
       where: {
         appointmentDate: {
           gte: startOfMonth,
           lte: endOfMonth,
         },
+        client: { isDeleted: false },
       },
       select: {
         appointmentDate: true,

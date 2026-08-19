@@ -458,7 +458,7 @@ export class ClientsService {
     const personId = client.personId;
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Eliminar seguimientos donde el cliente es el sujeto
+      // 1. Eliminar seguimientos donde el cliente es el sujeto o realizados por él si fuera usuario
       await tx.followUp.deleteMany({ where: { clientId } });
 
       // 2. Identificar todas las citas del cliente
@@ -498,9 +498,11 @@ export class ClientsService {
       // 8. Eliminar el registro de cliente
       await tx.client.delete({ where: { id: clientId } });
 
-      // 9. Eliminar la persona (solo si no es un usuario del sistema o profesional activo)
+      // 9. Eliminar la persona (solo si no es un usuario del sistema o profesional con citas)
       const user = await tx.user.findUnique({ where: { personId } });
-      if (!user) {
+      const isProfessional = await tx.appointment.findFirst({ where: { professionalId: personId } });
+
+      if (!user && !isProfessional) {
         await tx.people.delete({ where: { id: personId } });
       }
     });
@@ -512,8 +514,14 @@ export class ClientsService {
       select: { id: true },
     });
 
+    // Ejecutar en serie para evitar bloqueos pesados en la base de datos si la papelera es muy grande,
+    // pero asegurando que cada uno se procese correctamente.
     for (const client of deletedClients) {
-      await this.permanentRemove(Number(client.id));
+      try {
+        await this.permanentRemove(Number(client.id));
+      } catch (error) {
+        console.error(`Error eliminando cliente ${client.id} al vaciar papelera:`, error);
+      }
     }
   }
 }

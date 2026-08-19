@@ -88,7 +88,9 @@ export class AppointmentsService {
 
   async findOne(id: number): Promise<Appointment> {
     const appt = await this.repository.findById(id);
-    if (!appt) throw new NotFoundException(`Cita con ID ${id} no encontrada`);
+    if (!appt || appt.client?.isDeleted) {
+      throw new NotFoundException(`Cita con ID ${id} no encontrada o pertenece a un cliente en la papelera`);
+    }
     return AppointmentMapper.toDto(appt);
   }
 
@@ -98,6 +100,12 @@ export class AppointmentsService {
       include: { person: true },
     });
     if (!client) throw new BadRequestException(`Cliente con ID ${dto.clientId} no existe`);
+
+    if (client.isDeleted) {
+      throw new BadRequestException(
+        `No se puede agendar una cita para el cliente ${client.person.firstName} ${client.person.lastName} porque se encuentra en la papelera de reciclaje.`,
+      );
+    }
 
     const activeAppointment = await this.repository.findFirstActive(dto.clientId);
     if (activeAppointment) {
