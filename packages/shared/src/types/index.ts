@@ -62,6 +62,8 @@ export interface UserWithRoles extends User {
 export interface Client {
   id: number;
   personId: number;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
   createdAt: string;
 
   // Relaciones expandidas

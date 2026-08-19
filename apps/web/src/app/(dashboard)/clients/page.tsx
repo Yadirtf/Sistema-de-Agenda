@@ -59,10 +59,16 @@ export default function ClientsPage() {
           </p>
         </div>
 
-        <Link href="/clients/new" className="btn btn-primary">
-          <Plus size={18} />
-          <span>Nuevo Cliente</span>
-        </Link>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <Link href="/clients/recycle-bin" className="btn btn-secondary">
+            <Trash2 size={18} />
+            <span>Papelera</span>
+          </Link>
+          <Link href="/clients/new" className="btn btn-primary">
+            <Plus size={18} />
+            <span>Nuevo Cliente</span>
+          </Link>
+        </div>
       </div>
 
       {/* Search & Filters */}

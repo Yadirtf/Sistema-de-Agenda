@@ -172,6 +172,8 @@ model UserRole {
 model Client {
   id        BigInt   @id @default(autoincrement())
   personId  BigInt   @unique @map("person_id")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   person           People                  @relation(fields: [personId], references: [id], onDelete: Restrict)

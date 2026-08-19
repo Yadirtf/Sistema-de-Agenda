@@ -44,7 +44,9 @@ export class AppointmentsService {
     const perPage = Number(query?.perPage) || 20;
     const skip = (page - 1) * perPage;
 
-    const where: any = {};
+    const where: any = {
+      client: { isDeleted: false }
+    };
     if (query?.clientId) where.clientId = Number(query.clientId);
     if (query?.statusId) where.statusId = Number(query.statusId);
 
@@ -182,6 +184,7 @@ export class AppointmentsService {
       status: {
         name: { in: ['Sin agendar', 'Completada', 'Cancelada', 'No Asistió'] },
       },
+      client: { isDeleted: false },
     };
 
     if (query.clientId) where.clientId = Number(query.clientId);

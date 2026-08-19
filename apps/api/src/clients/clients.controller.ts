@@ -42,6 +42,11 @@ export class ClientsController {
     return this.clientsService.findOne(id);
   }
 
+  @Get('bin/deleted')
+  async findDeleted() {
+    return this.clientsService.findDeleted();
+  }
+
   @Post()
   async create(@Body() dto: CreateClientDto) {
     return this.clientsService.create(dto);
@@ -55,10 +60,27 @@ export class ClientsController {
     return this.clientsService.update(id, dto);
   }
 
+  @Patch(':id/restore')
+  async restore(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.restore(id);
+  }
+
+  @Delete('bin/empty')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async emptyBin() {
+    return this.clientsService.emptyBin();
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.clientsService.remove(id);
+  }
+
+  @Delete(':id/permanent')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async permanentRemove(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.permanentRemove(id);
   }
 
   @Get(':id/entries')

@@ -66,27 +66,19 @@ export function DeleteClientModal({ isOpen, onClose, client, onSuccess }: Delete
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
-            color: 'var(--danger-text)',
+            color: 'var(--warning-text)',
             marginBottom: '1.25rem',
           }}
         >
-          <AlertTriangle size={28} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Eliminar Cliente</h2>
+          <Trash2 size={28} />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Mover a la Papelera</h2>
         </div>
 
         <div style={{ fontSize: '0.9375rem', color: 'var(--text-main)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-          ¿Estás seguro de que deseas eliminar a <strong>{client.person?.firstName} {client.person?.lastName}</strong>?
+          ¿Estás seguro de que deseas enviar a <strong>{client.person?.firstName} {client.person?.lastName}</strong> a la papelera de reciclaje?
           <br />
           <br />
-          Esta acción es <strong>permanente</strong> y eliminará todos sus registros asociados:
-          <ul
-            style={{ marginTop: '0.5rem', marginLeft: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}
-          >
-            <li>Citas y re-agendamientos</li>
-            <li>Historial de ingresos</li>
-            <li>Seguimientos</li>
-            <li>Configuración personalizada</li>
-          </ul>
+          El cliente será desactivado y no aparecerá en las listas principales ni en el historial. Podrás restaurarlo o eliminarlo definitivamente desde la papelera de reciclaje.
         </div>
 
         {error && (
@@ -110,12 +102,12 @@ export function DeleteClientModal({ isOpen, onClose, client, onSuccess }: Delete
           </button>
           <button
             className="btn btn-primary"
-            style={{ backgroundColor: 'var(--danger-text)', borderColor: 'var(--danger-text)' }}
+            style={{ backgroundColor: 'var(--warning-text)', borderColor: 'var(--warning-text)', color: 'white' }}
             onClick={handleDelete}
             disabled={loading}
           >
             <Trash2 size={18} />
-            <span>{loading ? 'Eliminando...' : 'Eliminar Permanentemente'}</span>
+            <span>{loading ? 'Moviendo...' : 'Mover a Papelera'}</span>
           </button>
         </div>
       </div>

@@ -12,22 +12,23 @@ export class DashboardService {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
     const [todayAppointments, confirmedAppointments, pendingAppointments, activeClients] = await Promise.all([
-      // Citas de hoy
+      // Citas de hoy (solo clientes no eliminados)
       this.prisma.appointment.count({
         where: {
           appointmentDate: {
             gte: startOfDay,
             lte: endOfDay,
           },
+          client: { isDeleted: false },
         },
       }),
-      // Confirmadas (pueden ser de cualquier fecha, o solo próximas? Según el KPI actual parece global o de hoy)
-      // Vamos a filtrar por "Confirmada" globalmente para reflejar el estado actual
+      // Confirmadas
       this.prisma.appointment.count({
         where: {
           status: {
             name: 'Confirmada',
           },
+          client: { isDeleted: false },
         },
       }),
       // Pendientes (Agendadas)
@@ -36,11 +37,13 @@ export class DashboardService {
           status: {
             name: 'Agendada',
           },
+          client: { isDeleted: false },
         },
       }),
-      // Clientes Activos
+      // Clientes Activos (no eliminados)
       this.prisma.client.count({
         where: {
+          isDeleted: false,
           person: {
             status: {
               name: 'Activo',

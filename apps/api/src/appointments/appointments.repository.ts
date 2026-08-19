@@ -90,6 +90,7 @@ export class AppointmentsRepository {
           lte: targetDate,
         },
         reminderSentAt: null,
+        client: { isDeleted: false },
       },
       include: APPOINTMENT_INCLUDE,
       orderBy: { appointmentDate: 'asc' },
@@ -121,6 +122,7 @@ export class AppointmentsRepository {
         appointmentDate: {
           lt: thresholdDate,
         },
+        client: { isDeleted: false },
       },
       include: APPOINTMENT_INCLUDE,
     });

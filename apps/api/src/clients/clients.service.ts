@@ -31,7 +31,7 @@ export class ClientsService {
     const perPage = Number(query?.perPage) || 20;
     const skip = (page - 1) * perPage;
 
-    const where: any = {};
+    const where: any = { isDeleted: false };
 
     if (query?.search) {
       const search = query.search.trim();
@@ -373,9 +373,85 @@ export class ClientsService {
   }
 
   async remove(id: number): Promise<void> {
-    const client = await this.findOne(id);
-    const clientId = BigInt(client.id);
-    const personId = BigInt(client.personId);
+    await this.findOne(id);
+    await this.prisma.client.update({
+      where: { id: BigInt(id) },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    // Emitir evento de actualización para que el frontend sepa que el cliente ya no está en la lista principal
+    this.eventEmitter.emit('client.updated', { id });
+  }
+
+  async findDeleted(): Promise<Client[]> {
+    const items = await this.prisma.client.findMany({
+      where: { isDeleted: true },
+      orderBy: { deletedAt: 'desc' },
+      include: {
+        person: {
+          include: {
+            documentType: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return items.map((client) => ({
+      id: Number(client.id),
+      personId: Number(client.personId),
+      createdAt: client.createdAt.toISOString(),
+      deletedAt: client.deletedAt?.toISOString(),
+      person: {
+        id: Number(client.person.id),
+        documentTypeId: Number(client.person.documentTypeId),
+        documentNumber: client.person.documentNumber,
+        firstName: client.person.firstName,
+        middleName: client.person.middleName,
+        lastName: client.person.lastName,
+        secondLastName: client.person.secondLastName,
+        birthDate: client.person.birthDate ? client.person.birthDate.toISOString() : null,
+        phone: client.person.phone,
+        email: client.person.email,
+        statusId: Number(client.person.statusId),
+        createdAt: client.person.createdAt.toISOString(),
+        updatedAt: client.person.updatedAt.toISOString(),
+        documentType: {
+          id: Number(client.person.documentType.id),
+          name: client.person.documentType.name,
+        },
+        status: {
+          id: Number(client.person.status.id),
+          name: client.person.status.name,
+        },
+      },
+    }));
+  }
+
+  async restore(id: number): Promise<Client> {
+    await this.prisma.client.update({
+      where: { id: BigInt(id) },
+      data: {
+        isDeleted: false,
+        deletedAt: null,
+      },
+    });
+    return this.findOne(id);
+  }
+
+  async permanentRemove(id: number): Promise<void> {
+    const client = await this.prisma.client.findUnique({
+      where: { id: BigInt(id) },
+      select: { id: true, personId: true },
+    });
+
+    if (!client) throw new NotFoundException(`Cliente con ID ${id} no encontrado`);
+
+    const clientId = client.id;
+    const personId = client.personId;
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Eliminar seguimientos donde el cliente es el sujeto
@@ -389,8 +465,7 @@ export class ClientsService {
       const appointmentIds = appointments.map((a) => a.id);
 
       if (appointmentIds.length > 0) {
-        // 3. Romper la cadena de citas (autoreferencias) para evitar conflictos de integridad
-        // al eliminar en lote records con unique constraints autoreferenciados
+        // 3. Romper la cadena de citas (autoreferencias)
         await tx.appointment.updateMany({
           where: { id: { in: appointmentIds } },
           data: { previousAppointmentId: null },
@@ -425,5 +500,16 @@ export class ClientsService {
         await tx.people.delete({ where: { id: personId } });
       }
     });
+  }
+
+  async emptyBin(): Promise<void> {
+    const deletedClients = await this.prisma.client.findMany({
+      where: { isDeleted: true },
+      select: { id: true },
+    });
+
+    for (const client of deletedClients) {
+      await this.permanentRemove(Number(client.id));
+    }
   }
 }
