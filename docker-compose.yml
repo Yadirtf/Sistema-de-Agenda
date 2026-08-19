@@ -34,6 +34,7 @@ services:
       API_PORT: ${PORT_API}
       API_PREFIX: api/v1
       REDIS_URL: "redis://agenda-redis:6379"
+      APPOINTMENT_NO_SHOW_THRESHOLD_MINUTES: ${APPOINTMENT_NO_SHOW_THRESHOLD_MINUTES}
     depends_on:
       db:
         condition: service_healthy
