@@ -15,6 +15,7 @@ import {
   Filter,
   AlertCircle,
   MessageCircle,
+  Trash2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { getStatusBadgeClass } from '@/lib/appointment-utils';
