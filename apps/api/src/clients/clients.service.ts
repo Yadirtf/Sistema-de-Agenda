@@ -115,6 +115,8 @@ export class ClientsService {
       const mappedClient: Client = {
         id: Number(client.id),
         personId: Number(client.personId),
+        isDeleted: client.isDeleted,
+        deletedAt: client.deletedAt ? client.deletedAt.toISOString() : null,
         createdAt: client.createdAt.toISOString(),
         person: mappedPerson,
         schedulingConfig: client.schedulingConfig
@@ -177,7 +179,7 @@ export class ClientsService {
 
   async findOne(id: number): Promise<Client> {
     const client = await this.prisma.client.findUnique({
-      where: { id },
+      where: { id: BigInt(id) },
       include: {
         person: {
           include: {
@@ -200,6 +202,8 @@ export class ClientsService {
     return {
       id: Number(client.id),
       personId: Number(client.personId),
+      isDeleted: client.isDeleted,
+      deletedAt: client.deletedAt ? client.deletedAt.toISOString() : null,
       createdAt: client.createdAt.toISOString(),
       person: {
         id: Number(client.person.id),
@@ -281,7 +285,7 @@ export class ClientsService {
 
     const entry = await this.prisma.clientEntry.create({
       data: {
-        clientId,
+        clientId: BigInt(clientId),
         entryDate: new Date(dto.entryDate),
         statusId: dto.statusId,
       },
@@ -307,7 +311,7 @@ export class ClientsService {
     await this.findOne(clientId);
 
     const entries = await this.prisma.clientEntry.findMany({
-      where: { clientId },
+      where: { clientId: BigInt(clientId) },
       orderBy: { entryDate: 'desc' },
       include: {
         status: true,
@@ -334,9 +338,9 @@ export class ClientsService {
     await this.findOne(clientId);
 
     const updated = await this.prisma.clientSchedulingConfig.upsert({
-      where: { clientId },
+      where: { clientId: BigInt(clientId) },
       create: {
-        clientId,
+        clientId: BigInt(clientId),
         intervalId: dto.intervalId,
         notes: dto.notes,
       },

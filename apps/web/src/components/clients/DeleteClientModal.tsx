@@ -23,8 +23,10 @@ export function DeleteClientModal({ isOpen, onClose, client, onSuccess }: Delete
       await apiClient.delete(`/clients/${client.id}`);
       onSuccess();
       onClose();
-    } catch (err) {
-      setError('Error al eliminar el cliente. Asegúrate de que no haya restricciones pendientes.');
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      const message = err.response?.data?.message || 'Error inesperado al procesar la solicitud.';
+      setError(`No se pudo mover el cliente a la papelera: ${message}`);
     } finally {
       setLoading(false);
     }

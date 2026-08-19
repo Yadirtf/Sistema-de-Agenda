@@ -37,11 +37,6 @@ export class ClientsController {
     });
   }
 
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.clientsService.findOne(id);
-  }
-
   @Get('bin/deleted')
   async findDeleted() {
     return this.clientsService.findDeleted();
@@ -50,14 +45,6 @@ export class ClientsController {
   @Post()
   async create(@Body() dto: CreateClientDto) {
     return this.clientsService.create(dto);
-  }
-
-  @Patch(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateClientDto,
-  ) {
-    return this.clientsService.update(id, dto);
   }
 
   @Patch(':id/restore')
@@ -69,12 +56,6 @@ export class ClientsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async emptyBin() {
     return this.clientsService.emptyBin();
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.clientsService.remove(id);
   }
 
   @Delete(':id/permanent')
@@ -102,5 +83,24 @@ export class ClientsController {
     @Body() dto: UpsertClientSchedulingConfigDto,
   ) {
     return this.clientsService.upsertSchedulingConfig(id, dto);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.findOne(id);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateClientDto,
+  ) {
+    return this.clientsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.clientsService.remove(id);
   }
 }
