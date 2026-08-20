@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Trash2, AlertTriangle } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { X, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiClient, ApiClientError } from '@/lib/api-client';
 import { Client } from '@agendamiento/shared';
 
 interface DeleteClientModalProps {
@@ -13,6 +14,7 @@ interface DeleteClientModalProps {
 }
 
 export function DeleteClientModal({ isOpen, onClose, client, onSuccess }: DeleteClientModalProps) {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,11 +23,19 @@ export function DeleteClientModal({ isOpen, onClose, client, onSuccess }: Delete
       setLoading(true);
       setError(null);
       await apiClient.delete(`/clients/${client.id}`);
+      // Invalidar caches para que la lista de clientes y la papelera se actualicen
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-bin'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error('Delete error:', err);
-      const message = err.response?.data?.message || 'Error inesperado al procesar la solicitud.';
+      // ApiClientError guarda el mensaje en .message (no en .response.data.message como Axios)
+      const message =
+        err instanceof ApiClientError
+          ? err.message
+          : err?.message || 'Error inesperado al procesar la solicitud.';
       setError(`No se pudo mover el cliente a la papelera: ${message}`);
     } finally {
       setLoading(false);

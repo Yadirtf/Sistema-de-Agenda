@@ -81,16 +81,33 @@ export class AppointmentsRepository {
     });
   }
 
-  async findPendingReminders(now: Date, targetDate: Date) {
+  async findPendingReminders(now: Date, targetDate: Date, twentyFourHoursAgo: Date) {
     return this.prisma.appointment.findMany({
       where: {
         status: { name: 'Agendada' },
         appointmentDate: {
           gte: now,
-          lte: targetDate,
         },
-        reminderSentAt: null,
         client: { isDeleted: false },
+        OR: [
+          // 1. Citas próximas pendientes de notificar
+          {
+            reminderSentAt: null,
+            appointmentDate: {
+              gte: now,
+              lte: targetDate,
+            },
+          },
+          // 2. Citas notificadas en las últimas 24h cuya fecha aún no ha pasado
+          {
+            reminderSentAt: {
+              gte: twentyFourHoursAgo,
+            },
+            appointmentDate: {
+              gte: now,
+            },
+          },
+        ],
       },
       include: APPOINTMENT_INCLUDE,
       orderBy: { appointmentDate: 'asc' },

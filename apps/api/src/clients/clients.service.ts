@@ -449,63 +449,76 @@ export class ClientsService {
   async permanentRemove(id: number): Promise<void> {
     const client = await this.prisma.client.findUnique({
       where: { id: BigInt(id) },
-      select: { id: true, personId: true },
+      select: { id: true, personId: true, isDeleted: true },
     });
 
     if (!client) throw new NotFoundException(`Cliente con ID ${id} no encontrado`);
 
+    if (!client.isDeleted) {
+      throw new BadRequestException(
+        `El cliente ${id} no está en la papelera. Muévelo primero a la papelera antes de eliminarlo permanentemente.`,
+      );
+    }
+
     const clientId = client.id;
     const personId = client.personId;
 
-    await this.prisma.$transaction(async (tx) => {
-      // 1. Eliminar seguimientos donde el cliente es el sujeto o realizados por él si fuera usuario
-      await tx.followUp.deleteMany({ where: { clientId } });
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Eliminar seguimientos del cliente
+        await tx.followUp.deleteMany({ where: { clientId } });
 
-      // 2. Identificar todas las citas del cliente
-      const appointments = await tx.appointment.findMany({
-        where: { clientId },
-        select: { id: true },
+        // 2. Identificar todas las citas del cliente
+        const appointments = await tx.appointment.findMany({
+          where: { clientId },
+          select: { id: true },
+        });
+        const appointmentIds = appointments.map((a) => a.id);
+
+        if (appointmentIds.length > 0) {
+          // 3. Romper la cadena de citas (autoreferencias)
+          await tx.appointment.updateMany({
+            where: { id: { in: appointmentIds } },
+            data: { previousAppointmentId: null },
+          });
+
+          // 4. Eliminar reagendamientos vinculados a estas citas
+          await tx.rescheduling.deleteMany({
+            where: {
+              OR: [
+                { originalAppointmentId: { in: appointmentIds } },
+                { newAppointmentId: { in: appointmentIds } },
+              ],
+            },
+          });
+
+          // 5. Eliminar las citas
+          await tx.appointment.deleteMany({ where: { id: { in: appointmentIds } } });
+        }
+
+        // 6. Eliminar ingresos del cliente
+        await tx.clientEntry.deleteMany({ where: { clientId } });
+
+        // 7. Eliminar configuración de agendamiento
+        await tx.clientSchedulingConfig.deleteMany({ where: { clientId } });
+
+        // 8. Eliminar el registro de cliente
+        await tx.client.delete({ where: { id: clientId } });
+
+        // 9. Eliminar la persona solo si no es usuario del sistema ni profesional activo
+        const user = await tx.user.findUnique({ where: { personId } });
+        const isProfessional = await tx.appointment.findFirst({ where: { professionalId: personId } });
+
+        if (!user && !isProfessional) {
+          await tx.people.delete({ where: { id: personId } });
+        }
       });
-      const appointmentIds = appointments.map((a) => a.id);
-
-      if (appointmentIds.length > 0) {
-        // 3. Romper la cadena de citas (autoreferencias)
-        await tx.appointment.updateMany({
-          where: { id: { in: appointmentIds } },
-          data: { previousAppointmentId: null },
-        });
-
-        // 4. Eliminar reagendamientos vinculados a estas citas
-        await tx.rescheduling.deleteMany({
-          where: {
-            OR: [
-              { originalAppointmentId: { in: appointmentIds } },
-              { newAppointmentId: { in: appointmentIds } },
-            ],
-          },
-        });
-
-        // 5. Eliminar las citas
-        await tx.appointment.deleteMany({ where: { id: { in: appointmentIds } } });
-      }
-
-      // 6. Eliminar ingresos del cliente
-      await tx.clientEntry.deleteMany({ where: { clientId } });
-
-      // 7. Eliminar configuración de agendamiento
-      await tx.clientSchedulingConfig.deleteMany({ where: { clientId } });
-
-      // 8. Eliminar el registro de cliente
-      await tx.client.delete({ where: { id: clientId } });
-
-      // 9. Eliminar la persona (solo si no es un usuario del sistema o profesional con citas)
-      const user = await tx.user.findUnique({ where: { personId } });
-      const isProfessional = await tx.appointment.findFirst({ where: { professionalId: personId } });
-
-      if (!user && !isProfessional) {
-        await tx.people.delete({ where: { id: personId } });
-      }
-    });
+    } catch (error) {
+      console.error(`[ClientsService] Error en permanentRemove(${id}):`, error);
+      throw new BadRequestException(
+        `No se pudo eliminar permanentemente el cliente ${id}. Verifique que no tenga registros relacionados bloqueantes.`,
+      );
+    }
   }
 
   async emptyBin(): Promise<void> {

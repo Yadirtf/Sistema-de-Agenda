@@ -292,7 +292,9 @@ export class AppointmentsService {
     const targetDate = new Date();
     targetDate.setDate(now.getDate() + days);
 
-    const appointments = await this.repository.findPendingReminders(now, targetDate);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const appointments = await this.repository.findPendingReminders(now, targetDate, twentyFourHoursAgo);
     return appointments.map((a) => AppointmentMapper.toDto(a));
   }
 

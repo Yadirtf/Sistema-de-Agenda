@@ -23,9 +23,13 @@ async function fetchWithAuth<T>(
   const { accessToken, refreshToken, setAuth, logout } = useAuthStore.getState();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
+
+  // Solo agregar Content-Type si hay un cuerpo en la petición
+  if (options.body) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
@@ -60,16 +64,35 @@ async function fetchWithAuth<T>(
     }
   }
 
-  const data = await response.json();
+  // Respuestas sin cuerpo (204 No Content, 205 Reset Content)
+  const hasBody =
+    response.status !== 204 &&
+    response.status !== 205 &&
+    response.headers.get('content-length') !== '0' &&
+    response.headers.get('content-type')?.includes('application/json');
 
   if (!response.ok) {
-    const errorData = data as ApiError;
+    // Intentar leer el error del cuerpo si lo hay
+    if (hasBody) {
+      const errorData = (await response.json()) as ApiError;
+      throw new ApiClientError(
+        errorData.message || 'Error en la petición',
+        response.status,
+        errorData.errors,
+      );
+    }
     throw new ApiClientError(
-      errorData.message || 'Error en la petición',
+      `Error ${response.status}: ${response.statusText || 'Error en la petición'}`,
       response.status,
-      errorData.errors,
     );
   }
+
+  // Sin cuerpo — devolver null (ej. DELETE 204)
+  if (!hasBody) {
+    return null as unknown as T;
+  }
+
+  const data = await response.json();
 
   // Si la respuesta incluye 'meta', es una respuesta paginada y devolvemos todo el objeto
   if (data && typeof data === 'object' && 'meta' in data) {

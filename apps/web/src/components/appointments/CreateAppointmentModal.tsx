@@ -1,14 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Calendar, Clock, Save, AlertCircle, Sparkles } from 'lucide-react';
-import { apiClient, ApiClientError } from '@/lib/api-client';
-import {
-  Client,
-  NextAppointmentSuggestion,
-  PaginatedResponse,
-} from '@agendamiento/shared';
+import { X, Save, AlertCircle } from 'lucide-react';
+import { useCreateAppointmentForm } from '@/hooks/useCreateAppointmentForm';
+import { AppointmentSuggestionBanner } from './AppointmentSuggestionBanner';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -23,93 +17,34 @@ export function CreateAppointmentModal({
   clientId: initialClientId,
   previousAppointmentId,
 }: CreateAppointmentModalProps) {
-  const queryClient = useQueryClient();
-
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(initialClientId || null);
-  const [appointmentDate, setAppointmentDate] = useState('');
-  const [appointmentTime, setAppointmentTime] = useState('08:00');
-  const [notes, setNotes] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [suggestion, setSuggestion] = useState<NextAppointmentSuggestion | null>(null);
-  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-
-  // Fetch clients for dropdown if not provided
-  const { data: clientsData } = useQuery({
-    queryKey: ['clients-dropdown'],
-    queryFn: () => apiClient.get<PaginatedResponse<Client>>('/clients?perPage=100'),
-    enabled: isOpen && !initialClientId,
+  const {
+    selectedClientId,
+    setSelectedClientId,
+    appointmentDate,
+    setAppointmentDate,
+    appointmentTime,
+    setAppointmentTime,
+    notes,
+    setNotes,
+    loading,
+    error,
+    suggestion,
+    clients,
+    submitAppointment,
+    resetForm,
+  } = useCreateAppointmentForm({
+    isOpen,
+    initialClientId,
+    previousAppointmentId,
+    onSuccess: onClose,
   });
 
-  const clients = clientsData?.data || [];
-
-  // When client selection changes, fetch auto-suggestion
-  useEffect(() => {
-    const fetchSuggestion = async () => {
-      const cid = initialClientId || selectedClientId;
-      if (!cid || !isOpen) return;
-
-      try {
-        setLoadingSuggestion(true);
-        const sugg = await apiClient.get<NextAppointmentSuggestion>(
-          `/appointments/suggest-next/${cid}`,
-        );
-        if (sugg) {
-          setSuggestion(sugg);
-          const suggDate = new Date(sugg.suggestedDate);
-          setAppointmentDate(suggDate.toISOString().split('T')[0]);
-          setAppointmentTime(
-            suggDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          );
-        }
-      } catch {
-        // Ignore
-      } finally {
-        setLoadingSuggestion(false);
-      }
-    };
-
-    fetchSuggestion();
-  }, [selectedClientId, initialClientId, isOpen]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    const cid = initialClientId || selectedClientId;
-
-    if (!cid || !appointmentDate || !appointmentTime) {
-      setError('Por favor completa todos los campos requeridos');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Forzar offset de Bogotá para evitar desfases al guardar en BD
-      const combinedDateTime = `${appointmentDate}T${appointmentTime}:00-05:00`;
-
-      await apiClient.post('/appointments', {
-        clientId: cid,
-        previousAppointmentId: previousAppointmentId || null,
-        appointmentDate: new Date(combinedDateTime).toISOString(),
-        notes: notes || null,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      onClose();
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        setError(err.message);
-      } else {
-        setError('Error al registrar la cita.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   return (
     <div
@@ -137,24 +72,61 @@ export function CreateAppointmentModal({
           position: 'relative',
         }}
       >
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Cabecera del Modal */}
+        <div
+          style={{
+            padding: '1.5rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Reagendar / Nueva Cita</h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Completa los detalles para programar el próximo encuentro</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Completa los detalles para programar el próximo encuentro
+            </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button
+            onClick={handleClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Formulario */}
+        <form
+          onSubmit={submitAppointment}
+          style={{
+            overflowY: 'auto',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+          }}
+        >
           {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', fontSize: '0.875rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.625rem',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--danger-bg)',
+                color: 'var(--danger-text)',
+                border: '1px solid var(--danger-border)',
+                fontSize: '0.875rem',
+              }}
+            >
               <AlertCircle size={18} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
+          {/* Selector de Cliente si no viene prefijado */}
           {!initialClientId && (
             <div className="form-group">
               <label className="form-label">Seleccionar Cliente *</label>
@@ -174,19 +146,17 @@ export function CreateAppointmentModal({
             </div>
           )}
 
-          {suggestion && (
-            <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-500)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Sparkles size={16} style={{ color: 'var(--primary-600)' }} />
-                <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-700)' }}>Sugerencia (Semana {suggestion.entryWeek})</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Rango: {suggestion.weekStartDate} al {suggestion.weekEndDate}
-              </p>
-            </div>
-          )}
+          {/* Banner de Sugerencia Inteligente */}
+          {suggestion && <AppointmentSuggestionBanner suggestion={suggestion} />}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+          {/* Campos de Fecha y Hora */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1.25rem',
+            }}
+          >
             <div className="form-group">
               <label className="form-label">Fecha de la Cita *</label>
               <input
@@ -210,6 +180,7 @@ export function CreateAppointmentModal({
             </div>
           </div>
 
+          {/* Observaciones */}
           <div className="form-group">
             <label className="form-label">Notas Adicionales</label>
             <textarea
@@ -221,8 +192,17 @@ export function CreateAppointmentModal({
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem' }}>
-            <button type="button" onClick={onClose} className="btn btn-secondary">
+          {/* Botones de Acción */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '1rem',
+              borderTop: '1px solid var(--border-subtle)',
+              paddingTop: '1.25rem',
+            }}
+          >
+            <button type="button" onClick={handleClose} className="btn btn-secondary">
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
