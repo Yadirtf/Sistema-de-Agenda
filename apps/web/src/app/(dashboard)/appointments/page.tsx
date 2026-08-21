@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { getStatusBadgeClass } from '@/lib/appointment-utils';
+import { formatTime12h } from '@/lib/date-utils';
 import {
   Appointment,
   CatalogItem,
@@ -175,10 +176,10 @@ export default function AppointmentsPage() {
           </p>
         </div>
 
-        <Link href="/appointments/new" className="btn btn-primary">
+        <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary">
           <Plus size={18} />
           <span>Agendar Cita</span>
-        </Link>
+        </button>
       </div>
 
       {/* Tabs Navigation */}
@@ -418,7 +419,7 @@ export default function AppointmentsPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
                               <Clock size={12} />
                               <span>
-                                {date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                {formatTime12h(date)}
                               </span>
                             </div>
                           </td>

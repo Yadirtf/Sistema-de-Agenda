@@ -3,6 +3,7 @@
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { formatTime12h } from '@/lib/date-utils';
 import { Appointment, SchedulingConfig } from '@agendamiento/shared';
 
 type ReminderFilter = 'all' | 'pending' | 'sent';
@@ -48,10 +49,7 @@ export function useReminders({ appointments, config }: UseRemindersParams) {
       day: 'numeric',
       month: 'long',
     });
-    const time = new Date(appt.appointmentDate).toLocaleTimeString('es-CO', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const time = formatTime12h(appt.appointmentDate);
 
     const publicLink = `${window.location.origin}/confirm-appointment/${appt.confirmationToken}`;
     const greeting = isResend

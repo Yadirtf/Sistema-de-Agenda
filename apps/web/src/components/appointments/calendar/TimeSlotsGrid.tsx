@@ -1,12 +1,13 @@
 'use client';
 
-import { Clock, Check, AlertTriangle, Lock } from 'lucide-react';
+import { Clock, Check, AlertTriangle } from 'lucide-react';
 import { DaySlot } from '@agendamiento/shared';
+import { formatTime12h, formatDateLong } from '@/lib/date-utils';
 
 interface TimeSlotsGridProps {
   selectedDate: string; // YYYY-MM-DD
   slots: DaySlot[];
-  selectedTime: string; // "HH:MM"
+  selectedTime: string; // "HH:MM" (formato 24h para el valor interno)
   onSelectTime: (time: string) => void;
   isLoading?: boolean;
   isWorkingDay?: boolean;
@@ -24,11 +25,7 @@ export function TimeSlotsGrid({
     if (!selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) return selectedDate;
     const [y, m, d] = selectedDate.split('-').map(Number);
     const dateObj = new Date(y, m - 1, d);
-    return dateObj.toLocaleDateString('es-CO', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
+    return formatDateLong(dateObj);
   })();
 
   const availableCount = slots.filter((s) => s.available).length;
@@ -134,11 +131,11 @@ export function TimeSlotsGrid({
           No hay horarios configurados para este día.
         </div>
       ) : (
-        /* Cuadrícula de Slots Horarios */
+        /* Cuadrícula de Slots Horarios en Formato 12 Horas AM/PM */
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))',
             gap: '0.5rem',
             maxHeight: '260px',
             overflowY: 'auto',
@@ -148,6 +145,7 @@ export function TimeSlotsGrid({
           {slots.map((slot) => {
             const isSelected = slot.time === selectedTime;
             const isAvailable = slot.available;
+            const time12h = formatTime12h(slot.time);
 
             return (
               <button
@@ -185,20 +183,20 @@ export function TimeSlotsGrid({
                 }}
                 title={
                   !isAvailable
-                    ? `${slot.time} — Horario Ocupado`
-                    : `${slot.time} — Horario Disponible`
+                    ? `${time12h} — Horario Ocupado`
+                    : `${time12h} — Horario Disponible`
                 }
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: isSelected ? 800 : 600 }}>
-                    {slot.time}
+                  <span style={{ fontSize: '0.75rem', fontWeight: isSelected ? 800 : 600 }}>
+                    {time12h}
                   </span>
                   {isSelected && <Check size={12} />}
                 </div>
 
                 <span
                   style={{
-                    fontSize: '0.65rem',
+                    fontSize: '0.625rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     color: isSelected

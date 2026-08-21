@@ -5,6 +5,7 @@ import { X, Calendar, Clock, User, Phone, FileText, History, ClipboardList } fro
 import { Appointment, FollowUp, PaginatedResponse } from '@agendamiento/shared';
 import { apiClient } from '@/lib/api-client';
 import { getStatusBadgeClass } from '@/lib/appointment-utils';
+import { formatTime12h, formatDateLong } from '@/lib/date-utils';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -118,8 +119,8 @@ export function AppointmentDetailsModal({
                 <Calendar size={14} />
                 <span>Fecha</span>
               </div>
-              <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                {date.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              <p style={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'capitalize' }}>
+                {formatDateLong(date)}
               </p>
             </div>
 
@@ -129,7 +130,7 @@ export function AppointmentDetailsModal({
                 <span>Hora</span>
               </div>
               <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                {date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                {formatTime12h(date)}
               </p>
             </div>
 

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getStatusBadgeClass } from '@/lib/appointment-utils';
 import { formatRelativeNotificationTime } from '@/lib/reminder-utils';
+import { formatTime12h } from '@/lib/date-utils';
 import { Appointment } from '@agendamiento/shared';
 
 interface ReminderCardProps {
@@ -102,7 +103,7 @@ export function ReminderCard({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--text-muted)' }}>
             <Clock size={13} />
-            <span>{apptDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{formatTime12h(apptDate)}</span>
           </div>
         </div>
 
