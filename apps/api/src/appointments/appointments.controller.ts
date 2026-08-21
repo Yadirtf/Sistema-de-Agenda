@@ -45,6 +45,24 @@ export class AppointmentsController {
     return this.appointmentsService.suggestNext(clientId);
   }
 
+  @Get('slots')
+  async getDaySlots(
+    @Query('date') date: string,
+    @Query('professionalId') professionalId?: string,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.appointmentsService.getDaySlots(
+      date,
+      professionalId ? parseInt(professionalId, 10) : undefined,
+      clientId ? parseInt(clientId, 10) : undefined,
+    );
+  }
+
+  @Get('professionals')
+  async getProfessionals() {
+    return this.appointmentsService.getProfessionals();
+  }
+
   @Get('pending-reminders')
   async getPendingReminders() {
     return this.appointmentsService.getPendingReminders();

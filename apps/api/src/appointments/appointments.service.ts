@@ -20,6 +20,9 @@ import type {
   CompleteAppointmentResponse,
   YearlyHistoryResponse,
   YearlyHistoryItem,
+  DaySlot,
+  DaySlotsResponse,
+  ProfessionalItem,
 } from '@agendamiento/shared';
 
 @Injectable()
@@ -112,6 +115,38 @@ export class AppointmentsService {
       throw new BadRequestException(
         `El cliente ${client.person.firstName} ${client.person.lastName} ya tiene una cita activa en estado "${activeAppointment.status.name}". Debe finalizarla o cancelarla antes de agendar una nueva.`,
       );
+    }
+
+    const appointmentDateObj = new Date(dto.appointmentDate);
+
+    // 1. Validar que el cliente no tenga ya una cita en esta misma fecha y hora
+    const clientSameTime = await this.prisma.appointment.findFirst({
+      where: {
+        clientId: BigInt(dto.clientId),
+        appointmentDate: appointmentDateObj,
+        status: {
+          name: { notIn: ['Cancelada', 'No Asistió'] },
+        },
+      },
+    });
+    if (clientSameTime) {
+      throw new BadRequestException('El cliente ya tiene una cita programada para esta misma fecha y hora.');
+    }
+
+    // 2. Si se asigna profesional, validar que no tenga otra cita asignada en este mismo horario
+    if (dto.professionalId) {
+      const profSameTime = await this.prisma.appointment.findFirst({
+        where: {
+          professionalId: BigInt(dto.professionalId),
+          appointmentDate: appointmentDateObj,
+          status: {
+            name: { notIn: ['Cancelada', 'No Asistió'] },
+          },
+        },
+      });
+      if (profSameTime) {
+        throw new BadRequestException('El profesional seleccionado ya tiene una cita asignada en este horario.');
+      }
     }
 
     let resolvedStatusId = dto.statusId;
@@ -365,4 +400,187 @@ export class AppointmentsService {
 
     return calculateNextSuggestionLogic({ lastAppt, client, config });
   }
+
+  async getProfessionals(): Promise<ProfessionalItem[]> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            role: {
+              name: { in: ['Profesional', 'Administrador'] },
+            },
+          },
+        },
+        person: {
+          status: { name: 'Activo' },
+        },
+      },
+      include: {
+        person: true,
+        userRoles: {
+          include: { role: true },
+        },
+      },
+      orderBy: {
+        person: { firstName: 'asc' },
+      },
+    });
+
+    return users.map((u) => ({
+      id: Number(u.person.id),
+      name: `${u.person.firstName} ${u.person.lastName}`,
+      documentNumber: u.person.documentNumber,
+      roleName: u.userRoles.map((ur) => ur.role.name).join(', '),
+    }));
+  }
+
+  async getDaySlots(
+    dateStr: string,
+    professionalId?: number,
+    clientId?: number,
+  ): Promise<DaySlotsResponse> {
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      throw new BadRequestException('El formato de fecha debe ser YYYY-MM-DD');
+    }
+
+    const config = await this.schedulingService.getConfig();
+    const startTimeStr = config.businessStartTime || '08:00';
+    const endTimeStr = config.businessEndTime || '18:00';
+    const slotDuration = config.slotDurationMinutes || 30;
+    const workingDays = config.workingDays || [1, 2, 3, 4, 5];
+
+    // Rango del día en hora de Bogotá (-05:00)
+    const dayStart = new Date(`${dateStr}T00:00:00.000-05:00`);
+    const dayEnd = new Date(`${dateStr}T23:59:59.999-05:00`);
+
+    if (isNaN(dayStart.getTime())) {
+      throw new BadRequestException('Fecha no válida');
+    }
+
+    // dayOfWeek: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const dayOfWeek = dayStart.getDay();
+    const isWorkingDay = workingDays.includes(dayOfWeek);
+
+    // Parsear horas
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
+    // Generar lista de horas
+    const timeSlots: string[] = [];
+    for (let m = startMinutes; m < endMinutes; m += slotDuration) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      timeSlots.push(
+        `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`,
+      );
+    }
+
+    // Consultar citas activas del día
+    const activeAppointments = await this.prisma.appointment.findMany({
+      where: {
+        appointmentDate: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
+        status: {
+          name: { notIn: ['Cancelada', 'No Asistió'] },
+        },
+        client: { isDeleted: false },
+      },
+      select: {
+        id: true,
+        appointmentDate: true,
+        clientId: true,
+        professionalId: true,
+      },
+    });
+
+    // Mapear citas por hora HH:MM (en hora de Bogotá -05:00)
+    const appointmentsByTime = new Map<string, typeof activeAppointments>();
+    for (const appt of activeAppointments) {
+      const d = new Date(appt.appointmentDate);
+      const timeString = d.toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Bogota',
+      });
+      if (!appointmentsByTime.has(timeString)) {
+        appointmentsByTime.set(timeString, []);
+      }
+      appointmentsByTime.get(timeString)!.push(appt);
+    }
+
+    // Contar total de profesionales activos para calcular si todos están ocupados cuando no se filtra por uno específico
+    const totalProfessionalsCount = await this.prisma.user.count({
+      where: {
+        userRoles: {
+          some: {
+            role: { name: 'Profesional' },
+          },
+        },
+        person: { status: { name: 'Activo' } },
+      },
+    });
+
+    const slots: DaySlot[] = timeSlots.map((time) => {
+      const apptsAtTime = appointmentsByTime.get(time) || [];
+
+      // 1. Validar si el cliente actual ya tiene cita a esta hora
+      if (clientId && apptsAtTime.some((a) => Number(a.clientId) === clientId)) {
+        return {
+          time,
+          available: false,
+          reason: 'El cliente ya tiene cita a esta hora',
+        };
+      }
+
+      // 2. Si se seleccionó un profesional específico
+      if (professionalId) {
+        const isProfBusy = apptsAtTime.some(
+          (a) => Number(a.professionalId) === professionalId,
+        );
+        if (isProfBusy) {
+          return {
+            time,
+            available: false,
+            reason: 'Ocupado',
+          };
+        }
+      } else {
+        // 3. Si no se seleccionó profesional específico:
+        if (totalProfessionalsCount > 0 && apptsAtTime.length >= totalProfessionalsCount) {
+          return {
+            time,
+            available: false,
+            reason: 'Ocupado',
+          };
+        } else if (totalProfessionalsCount === 0 && apptsAtTime.length > 0) {
+          return {
+            time,
+            available: false,
+            reason: 'Ocupado',
+          };
+        }
+      }
+
+      return {
+        time,
+        available: true,
+      };
+    });
+
+    return {
+      date: dateStr,
+      isWorkingDay,
+      workingDays,
+      businessStartTime: startTimeStr,
+      businessEndTime: endTimeStr,
+      slotDurationMinutes: slotDuration,
+      slots,
+    };
+  }
 }
+

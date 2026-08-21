@@ -211,6 +211,31 @@ export interface YearlyHistoryResponse {
   data: YearlyHistoryItem[];
 }
 
+// --- Disponibilidad de Slots y Profesionales ---
+
+export interface DaySlot {
+  time: string; // "HH:MM"
+  available: boolean;
+  reason?: string; // "Ocupado" | "Fuera de Horario"
+}
+
+export interface DaySlotsResponse {
+  date: string;
+  isWorkingDay: boolean;
+  workingDays: number[];
+  businessStartTime: string;
+  businessEndTime: string;
+  slotDurationMinutes: number;
+  slots: DaySlot[];
+}
+
+export interface ProfessionalItem {
+  id: number; // personId
+  name: string;
+  documentNumber: string;
+  roleName: string;
+}
+
 // --- Reagendamientos ---
 
 export interface Rescheduling {
