@@ -250,7 +250,7 @@ export class SchedulingService {
   /** Convierte "HH:MM" a un Date con hora UTC para persistir en Prisma @db.Time */
   private parseTime(timeStr: string): Date {
     const [h, m] = timeStr.split(':').map(Number);
-    const d = new Date(1970, 0, 1, h, m, 0);
+    const d = new Date(Date.UTC(1970, 0, 1, h, m, 0));
     return d;
   }
 
