@@ -40,7 +40,14 @@ export default function LoginPage() {
       });
 
       setAuth(res.user, res.accessToken, res.refreshToken);
-      router.push('/');
+
+      // Establecer cookie de rol para el middleware de Next.js
+      const primaryRole = res.user.roles?.[0]?.name ?? 'Asistente';
+      document.cookie = `agendamiento-role=${primaryRole}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Strict`;
+
+      // Redirigir según rol
+      const isProfessional = res.user.roles?.some((r) => r.name === 'Profesional');
+      router.push(isProfessional ? '/appointments' : '/');
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.message);

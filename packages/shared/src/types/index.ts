@@ -18,6 +18,23 @@ export interface SchedulingInterval extends CatalogItem {
   description?: string | null;
 }
 
+// --- Permisos y Roles ---
+
+export interface Permission {
+  id: number;
+  name: string;   // 'appointments:read'
+  label: string;  // 'Ver citas'
+  module: string; // 'appointments'
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string | null;
+  isSystem: boolean;
+  permissions?: Permission[];
+}
+
 // --- Personas ---
 
 export interface Person {
@@ -46,15 +63,16 @@ export interface User {
   id: number;
   personId: number;
   email: string;
+  isActive: boolean;
   createdAt: string;
 
   // Relaciones expandidas
   person?: Person;
-  roles?: CatalogItem[];
+  roles?: Role[];
 }
 
 export interface UserWithRoles extends User {
-  roles: CatalogItem[];
+  roles: Role[];
 }
 
 // --- Clientes ---
@@ -307,8 +325,10 @@ export interface LoginResponse {
 
 export interface TokenPayload {
   sub: number;
+  personId: number;       // person_id del usuario (para filtro de citas del Profesional)
   email: string;
-  roles: string[];
+  roles: string[];        // nombres de roles: ['Administrador', 'Asistente', ...]
+  permissions: string[];  // permisos planos: ['appointments:read', 'users:create', ...]
   iat?: number;
   exp?: number;
 }

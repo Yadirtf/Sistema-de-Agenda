@@ -22,7 +22,35 @@ CREATE TABLE document_types (
 -- Roles de usuario
 CREATE TABLE roles (
     id              BIGSERIAL PRIMARY KEY,
-    name            VARCHAR(100) NOT NULL UNIQUE
+    name            VARCHAR(100) NOT NULL UNIQUE,
+    description     TEXT,
+    is_system       BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- Permisos granulares del sistema
+CREATE TABLE permissions (
+    id      BIGSERIAL PRIMARY KEY,
+    name    VARCHAR(100) NOT NULL UNIQUE,   -- 'appointments:read'
+    label   VARCHAR(150) NOT NULL,          -- 'Ver citas'
+    module  VARCHAR(100) NOT NULL           -- 'appointments'
+);
+
+-- Relación N:M roles ↔ permisos
+CREATE TABLE role_permissions (
+    role_id       BIGINT NOT NULL,
+    permission_id BIGINT NOT NULL,
+
+    PRIMARY KEY (role_id, permission_id),
+
+    CONSTRAINT fk_role_permissions_role
+        FOREIGN KEY (role_id)
+        REFERENCES roles(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_role_permissions_permission
+        FOREIGN KEY (permission_id)
+        REFERENCES permissions(id)
+        ON DELETE CASCADE
 );
 
 -- Estados de personas
@@ -363,6 +391,12 @@ CREATE TABLE follow_ups (
 -- ============================================================
 -- 13. ÍNDICES
 -- ============================================================
+
+CREATE INDEX idx_role_permissions_role
+    ON role_permissions (role_id);
+
+CREATE INDEX idx_role_permissions_permission
+    ON role_permissions (permission_id);
 
 CREATE INDEX idx_people_name
     ON people (last_name, first_name);

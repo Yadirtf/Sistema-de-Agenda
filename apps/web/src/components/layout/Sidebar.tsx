@@ -12,6 +12,7 @@ import {
   Settings,
   LayoutDashboard,
   CalendarDays,
+  Shield,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -24,22 +25,20 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, isCollapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.roles.some((r) => r.name === 'Administrador');
+  const { user, hasPermission } = useAuthStore();
 
-  const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Citas', href: '/appointments', icon: Calendar },
-    { name: 'Clientes', href: '/clients', icon: UserCheck },
-    { name: 'Seguimientos', href: '/follow-ups', icon: MessageSquare },
+  const ALL_NAV_ITEMS = [
+    { name: 'Dashboard',      href: '/',            icon: LayoutDashboard, permission: 'dashboard:read' },
+    { name: 'Citas',          href: '/appointments', icon: Calendar,        permission: 'appointments:read' },
+    { name: 'Clientes',       href: '/clients',      icon: UserCheck,       permission: 'clients:read' },
+    { name: 'Seguimientos',   href: '/follow-ups',   icon: MessageSquare,   permission: 'follow_ups:read' },
+    { name: 'Usuarios',       href: '/users',        icon: Users,           permission: 'users:read' },
+    { name: 'Roles',          href: '/roles',        icon: Shield,          permission: 'roles:read' },
+    { name: 'Configuración',  href: '/settings',     icon: Settings,        permission: 'settings:read' },
   ];
 
-  if (isAdmin) {
-    navItems.push(
-      { name: 'Usuarios', href: '/users', icon: Users },
-      { name: 'Configuración', href: '/settings', icon: Settings },
-    );
-  }
+  // Filtrar ítems según los permisos del usuario logueado
+  const navItems = ALL_NAV_ITEMS.filter((item) => hasPermission(item.permission));
 
   return (
     <>

@@ -36,7 +36,13 @@ export class AuthService {
         },
         userRoles: {
           include: {
-            role: true,
+            role: {
+              include: {
+                rolePermissions: {
+                  include: { permission: true },
+                },
+              },
+            },
           },
         },
       },
@@ -52,10 +58,22 @@ export class AuthService {
     }
 
     const roles = user.userRoles.map((ur) => ur.role.name);
+
+    // Recolectar permisos únicos de todos los roles del usuario
+    const permissions = [
+      ...new Set(
+        user.userRoles.flatMap((ur) =>
+          ur.role.rolePermissions.map((rp) => rp.permission.name),
+        ),
+      ),
+    ];
+
     const tokenPayload = {
       sub: Number(user.id),
+      personId: Number(user.personId),
       email: user.email,
       roles,
+      permissions,
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {
@@ -112,7 +130,22 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: formattedUser,
+      user: {
+        ...formattedUser,
+        isActive: user.person.statusId === BigInt(1),
+        roles: user.userRoles.map((ur) => ({
+          id: Number(ur.role.id),
+          name: ur.role.name,
+          description: ur.role.description ?? null,
+          isSystem: ur.role.isSystem,
+          permissions: ur.role.rolePermissions.map((rp) => ({
+            id: Number(rp.permission.id),
+            name: rp.permission.name,
+            label: rp.permission.label,
+            module: rp.permission.module,
+          })),
+        })),
+      },
     };
   }
 

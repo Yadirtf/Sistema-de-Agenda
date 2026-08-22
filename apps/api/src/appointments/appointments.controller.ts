@@ -14,6 +14,8 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { UpdateAppointmentStatusDto } from './dto/update-appointment-status.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ForbiddenException } from '@nestjs/common';
+import { TokenPayload } from '@agendamiento/shared';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -21,6 +23,7 @@ export class AppointmentsController {
 
   @Get()
   async findAll(
+    @CurrentUser() currentUser: TokenPayload,
     @Query('clientId') clientId?: string,
     @Query('statusId') statusId?: string,
     @Query('dateFrom') dateFrom?: string,
@@ -29,6 +32,7 @@ export class AppointmentsController {
     @Query('perPage') perPage?: string,
     @Query('search') search?: string,
   ) {
+    const isProfessional = currentUser.roles.includes('Profesional');
     return this.appointmentsService.findAll({
       clientId: clientId ? parseInt(clientId, 10) : undefined,
       statusId: statusId ? parseInt(statusId, 10) : undefined,
@@ -37,6 +41,8 @@ export class AppointmentsController {
       page: page ? parseInt(page, 10) : 1,
       perPage: perPage ? parseInt(perPage, 10) : 20,
       search,
+      // Si el usuario es Profesional, forzar el filtro por su personId
+      professionalPersonId: isProfessional ? currentUser.personId : undefined,
     });
   }
 
@@ -108,9 +114,26 @@ export class AppointmentsController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAppointmentStatusDto,
-    @CurrentUser('sub') userId: number,
+    @CurrentUser() currentUser: TokenPayload,
   ) {
-    return this.appointmentsService.updateStatus(id, dto.statusId, dto.note, userId);
+    const isProfessional = currentUser.roles.includes('Profesional');
+
+    if (isProfessional) {
+      // El Profesional solo puede marcar como Completada (3) o No Asistió (5)
+      const ALLOWED_STATUS_IDS = [3, 5];
+      if (!ALLOWED_STATUS_IDS.includes(dto.statusId)) {
+        throw new ForbiddenException(
+          'El profesional solo puede marcar una cita como Completada o No Asistió',
+        );
+      }
+    }
+
+    return this.appointmentsService.updateStatus(
+      id,
+      dto.statusId,
+      dto.note,
+      currentUser.sub,
+    );
   }
 
   @Patch(':id/complete')

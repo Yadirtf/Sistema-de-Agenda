@@ -17,8 +17,10 @@ import { ReschedulingsModule } from './reschedulings/reschedulings.module';
 import { FollowUpsModule } from './follow-ups/follow-ups.module';
 import { EventsModule } from './common/events/events.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { RolesModule } from './roles/roles.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AppController } from './app.controller';
@@ -55,6 +57,7 @@ import { AppService } from './app.service';
     FollowUpsModule,
     EventsModule,
     DashboardModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [
@@ -70,6 +73,10 @@ import { AppService } from './app.service';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
     {
       provide: APP_FILTER,

@@ -17,10 +17,10 @@ INSERT INTO document_types (name) VALUES
     ('Permiso por Protección Temporal (PPT)');
 
 -- Roles
-INSERT INTO roles (name) VALUES
-    ('Administrador'),
-    ('Profesional'),
-    ('Recepcionista');
+INSERT INTO roles (name, description, is_system) VALUES
+    ('Administrador', 'Acceso total al sistema. Gestiona usuarios, roles y configuración.', TRUE),
+    ('Profesional',   'Visualiza y gestiona sus propias citas asignadas.', TRUE),
+    ('Asistente',     'Gestiona citas y clientes. Acceso operativo al sistema.', TRUE);
 
 -- Estados de persona
 INSERT INTO person_statuses (name) VALUES
@@ -116,5 +116,69 @@ INSERT INTO users (person_id, email, password_hash) VALUES (
 
 -- Asignar rol Administrador
 INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);
+
+-- ============================================================
+-- Permisos del sistema
+-- ============================================================
+
+INSERT INTO permissions (name, label, module) VALUES
+    ('dashboard:read',         'Ver dashboard',            'dashboard'),
+    ('appointments:read',      'Ver citas',                'appointments'),
+    ('appointments:create',    'Crear citas',              'appointments'),
+    ('appointments:update',    'Editar citas',             'appointments'),
+    ('appointments:delete',    'Eliminar citas',           'appointments'),
+    ('appointments:status',    'Cambiar estado de citas',  'appointments'),
+    ('clients:read',           'Ver clientes',             'clients'),
+    ('clients:create',         'Crear clientes',           'clients'),
+    ('clients:update',         'Editar clientes',          'clients'),
+    ('clients:delete',         'Eliminar clientes',        'clients'),
+    ('follow_ups:read',        'Ver seguimientos',         'follow_ups'),
+    ('follow_ups:create',      'Crear seguimientos',       'follow_ups'),
+    ('users:read',             'Ver usuarios',             'users'),
+    ('users:create',           'Crear usuarios',           'users'),
+    ('users:update',           'Editar usuarios',          'users'),
+    ('users:delete',           'Eliminar usuarios',        'users'),
+    ('roles:read',             'Ver roles',                'roles'),
+    ('roles:create',           'Crear roles',              'roles'),
+    ('roles:update',           'Editar roles',             'roles'),
+    ('roles:delete',           'Eliminar roles',           'roles'),
+    ('settings:read',          'Ver configuración',        'settings'),
+    ('settings:update',        'Editar configuración',     'settings');
+
+-- ============================================================
+-- Asignar permisos a roles base
+-- ============================================================
+
+-- Administrador: todos los permisos
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'Administrador'), p.id
+FROM permissions p;
+
+-- Asistente
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'Asistente'), p.id
+FROM permissions p
+WHERE p.name IN (
+    'dashboard:read',
+    'appointments:read',
+    'appointments:create',
+    'appointments:update',
+    'appointments:status',
+    'clients:read',
+    'clients:create',
+    'clients:update',
+    'follow_ups:read',
+    'follow_ups:create'
+);
+
+-- Profesional
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT (SELECT id FROM roles WHERE name = 'Profesional'), p.id
+FROM permissions p
+WHERE p.name IN (
+    'dashboard:read',
+    'appointments:read',
+    'appointments:status'
+);
 
 COMMIT;

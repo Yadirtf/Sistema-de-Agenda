@@ -42,6 +42,7 @@ export class AppointmentsService {
     page?: number;
     perPage?: number;
     search?: string;
+    professionalPersonId?: number; // Filtro automático para el rol Profesional
   }): Promise<PaginatedResponse<Appointment>> {
     const page = Number(query?.page) || 1;
     const perPage = Number(query?.perPage) || 20;
@@ -53,8 +54,14 @@ export class AppointmentsService {
     if (query?.clientId) where.clientId = Number(query.clientId);
     if (query?.statusId) where.statusId = Number(query.statusId);
 
+    // Filtro por profesional (se activa cuando el usuario logueado tiene rol Profesional)
+    if (query?.professionalPersonId) {
+      where.professionalId = Number(query.professionalPersonId);
+    }
+
     if (query?.search) {
       where.client = {
+        isDeleted: false,
         person: {
           OR: [
             { firstName: { contains: query.search, mode: 'insensitive' } },
